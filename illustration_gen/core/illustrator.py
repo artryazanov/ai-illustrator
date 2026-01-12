@@ -42,10 +42,22 @@ class StoryIllustrator:
             
             if scene.characters_present:
                 main_char_name = scene.characters_present[0]
-                ref_path = self.asset_manager.get_character_ref(main_char_name)
+                ref_path = self._get_best_ref(main_char_name, scene)
                 if ref_path:
                     ref_images.append(ref_path)
                     logger.info(f"Scene {scene.id}: Using reference for main character '{main_char_name}'")
+
+    def _get_best_ref(self, char_name: str, scene: Scene) -> Optional[str]:
+        char_data = self.asset_manager.get_character_data(char_name)
+        if not char_data: return None
+        
+        # Heuristics for shot type
+        portrait_keywords = ['face', 'eyes', 'smile', 'crying', 'portrait', 'close-up', 'лицо', 'глаза', 'emotion', 'expression']
+        desc_lower = (scene.visual_description + " " + scene.action_description).lower()
+        
+        if any(word in desc_lower for word in portrait_keywords):
+            return char_data.portrait_path or char_data.full_body_path
+        return char_data.full_body_path or char_data.portrait_path
 
             # We can also add location ref if available, but "Focus on Protagonist" suggests prioritizing people.
             # However, `ai_client` handles list of refs. If we want to risk it, we add loc.
