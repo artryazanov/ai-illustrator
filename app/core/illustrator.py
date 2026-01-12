@@ -7,6 +7,7 @@ from typing import List, Optional
 from app.core.ai_client import GenAIClient
 from app.core.asset_manager import AssetManager
 from app.core.models import Scene
+from app.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -139,8 +140,8 @@ class StoryIllustrator:
             if ref_path:
                 reference_images.append({
                     "path": ref_path,
-                    "purpose": f"Character Appearance Reference for {char_name}",
-                    "usage": "Maintain consistency with this character design."
+                    "purpose": f"Character Style and Appearance Reference for {char_name}",
+                    "usage": "Inherit the exact art style, line work, and color palette from this image. Maintain character design."
                 })
 
         # Add location reference (16:9)
@@ -148,18 +149,29 @@ class StoryIllustrator:
         if loc_ref:
             reference_images.append({
                 "path": loc_ref,
-                "purpose": "Location Environment Reference",
-                "usage": "Set the scene in this environment."
+                    "purpose": "Location Environment Reference",
+                    "usage": "This image is the absolute source of truth for visual style, brushwork, and medium. The final scene must be an exact stylistic match."
+            })
+
+        # Add global style reference
+        style_ref = self.asset_manager.templates.get("ref_f")
+        if style_ref and style_ref.exists():
+            reference_images.append({
+                "path": str(style_ref),
+                "purpose": "Global Art Style Reference",
+                "usage": "This image is the absolute authority for the visual style, brushwork, and medium. The final scene must be an exact stylistic match."
             })
 
         # Use the specific highlight prompt if available, otherwise fall back to visual description
         visual_core = highlight_prompt if highlight_prompt else scene.visual_description
 
-        # Enhanced prompt to prevent comic layout
+        # Enhanced prompt to prevent comic layout and enforcing style
         prompt = (
             f"{style_prompt}. **Single cinematic frame. One single cohesive image.**\n"
+            f"**Follow the visual style of the attached reference images precisely.**\n"
             f"**STRICTLY NO multi-panels, NO comic book layout, NO grid, NO split screen, NO storyboard, NO frames.**\n"
             f"**NO text, NO captions, NO speech bubbles.**\n"
+            f"{Config.DIGITAL_FIX}\n"
             f"Scene context: {visual_core}\n"
             f"Action taking place: {scene.action_description}\n"
             f"Setting: {scene.location_name}, {scene.time_of_day}. Mood: {scene.mood}."

@@ -20,6 +20,12 @@ class Config:
     # Generation settings
     DEFAULT_IMAGE_SIZE = (1024, 1024)
 
+    # Global Style Modifiers
+    DIGITAL_FIX = (
+        "direct digital render, high-quality digital art, clean edges, no paper texture, "
+        "no camera grain, no desk, no hands, no glare, no blur, sharp focus."
+    )
+
     @staticmethod
     def validate():
         if not Config.GEMINI_API_KEY:

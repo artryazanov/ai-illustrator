@@ -30,7 +30,17 @@ class TestStoryIllustrator:
         # Mock asset manager data
         char_data = Character(name="Alice", description="Desc", portrait_path="p.jpg", full_body_path="f.jpg")
         illustrator.asset_manager.get_character_data.return_value = char_data
+        
+        # Mock Location Data
+        loc_data = Location(name="Park", description="Park Desc", reference_image_path="loc_ref.jpg", id=101)
+        illustrator.asset_manager.get_location_data.return_value = loc_data
         illustrator.asset_manager.get_location_ref.return_value = "loc_ref.jpg"
+
+        # Mock Global Style Template
+        mock_ref_f = MagicMock()
+        mock_ref_f.__str__.return_value = "/path/to/ref_f.jpg"
+        mock_ref_f.exists.return_value = True
+        illustrator.asset_manager.templates = {"ref_f": mock_ref_f}
 
         # Mock AI slug generation
         illustrator.ai_client.generate_filename_slug.return_value = "sunny_day"
@@ -58,13 +68,19 @@ class TestStoryIllustrator:
         assert kwargs['output_path'] == expected_path
 
         assert "Park" in kwargs['prompt'] # Check prompt construction
-        assert len(kwargs['reference_images']) == 2
+        assert len(kwargs['reference_images']) == 3
+        
         # Check Character Ref
         assert kwargs['reference_images'][0]['path'] == "f.jpg"
-        assert kwargs['reference_images'][0]['purpose'] == "Character Appearance Reference for Alice"
+        assert "Character Style and Appearance Reference" in kwargs['reference_images'][0]['purpose']
+        
         # Check Location Ref
         assert kwargs['reference_images'][1]['path'] == "loc_ref.jpg"
         assert kwargs['reference_images'][1]['purpose'] == "Location Environment Reference"
+
+        # Check Global Style Ref
+        assert kwargs['reference_images'][2]['path'] == "/path/to/ref_f.jpg"
+        assert kwargs['reference_images'][2]['purpose'] == "Global Art Style Reference"
 
     def test_select_character_ref_portrait(self, illustrator):
         scene = Scene(

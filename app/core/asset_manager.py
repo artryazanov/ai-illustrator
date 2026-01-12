@@ -44,7 +44,7 @@ class AssetManager:
         logger.info("Preparing global style templates...")
         
         # Tech modifier to prevent "photo effect"
-        digital_fix = "direct digital render, high-quality digital art, clean edges, no paper texture, no camera grain, no desk, no hands, no glare."
+        digital_fix = Config.DIGITAL_FIX
         
         # 1. Generate clean backgrounds (9:16)
         # Rigidly forbid text and UI
@@ -91,7 +91,7 @@ class AssetManager:
         """Creates base backgrounds and style templates for locations (16:9)."""
         logger.info("Preparing location style templates (16:9)...")
         
-        digital_fix = "direct digital render, high-quality digital art, clean edges, no paper texture, no camera grain, no desk, no glare."
+        digital_fix = Config.DIGITAL_FIX
         
         # 1. Neutral background (16:9)
         bg_prompt = (
@@ -304,7 +304,7 @@ class AssetManager:
             char.full_body_path = str(output_file)
             return True
 
-        digital_fix = "direct digital render, high-quality digital art, clean edges, no paper texture, no camera grain."
+        digital_fix = Config.DIGITAL_FIX
         view_type = "full body shot"
         prompt = (
             f"{view_type} of {char.name}, {char.description}. {style_prompt}. "
@@ -369,7 +369,7 @@ class AssetManager:
             img_file = self.loc_dir / filename
             
             # 16:9 Prompt
-            digital_fix = "direct digital render, high-quality digital art, clean edges, no paper texture, no camera grain, no desk, no glare."
+            digital_fix = Config.DIGITAL_FIX
             prompt = (
                 f"Digital landscape art of {loc.name}, {loc.description}. "
                 f"The visual style, lighting, and brushwork MUST be an exact match to the provided Environment Style Template. "
