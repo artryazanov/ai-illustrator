@@ -11,7 +11,7 @@ AI Illustrator is a powerful tool designed to automatically generate consistent,
 
 -   **Automatic Style Detection**: Analyzes the story text to determine the most appropriate art style and generates consistent illustrations based on that style.
 -   **Character Consistency**:
-    -   Extracts character descriptions and generates reference character images (Full Body).
+    -   Extracts character descriptions and generates reference character images (Full Body, 16:9).
     -   Maintains a persistent catalog of characters in `output/data.json` to ensure the same character looks consistent throughout the story.
     -   Uses reference images (multimodal generation) to keep character appearance stable across different scenes.
 -   **Location Consistency**:
@@ -104,8 +104,8 @@ output/
 │   └── 1_sunny_park_scene.jpeg
 ├── data.json               # Unified manifest (Style, Characters, Locations, Illustrations)
 └── style_templates/        # Generated style base images
-    ├── bg_fullbody.jpg                # 9:16 solid background for characters
-    ├── style_reference_fullbody.jpg   # 9:16 character style reference
+    ├── bg_fullbody.jpg                # 16:9 solid background for characters
+    ├── style_reference_fullbody.jpg   # 16:9 character style reference
     └── bg_location_16_9.jpg           # 16:9 neutral background for locations
 ```
 
@@ -142,8 +142,7 @@ The `data.json` file serves as the central manifest for the project.
       "name": "sunny_park_scene",
       "location": {
         "id": 1,
-        "name": "Location Name",
-        "path": "output/locations/1_location_name.jpeg"
+        "name": "Location Name"
       },
       "characters": [
         {

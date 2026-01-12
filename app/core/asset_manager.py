@@ -51,8 +51,8 @@ class AssetManager:
         # 1. Generate clean backgrounds (9:16)
         # Rigidly forbid text and UI
         bg_base_prompt = (
-            f"{detected_style}. 9:16 aspect ratio. "
-            f"Vertical crop of the environment, no characters, no text. "
+            f"{detected_style}. 16:9 aspect ratio. "
+            f"Cinematic wide shot of the environment, no characters, no text. "
             f"The visual style, colors, and lighting MUST be an exact match to the reference image. "
             f"{digital_fix}"
         )
@@ -66,7 +66,7 @@ class AssetManager:
                     "usage": "This image is the absolute source of truth for visual style, colors, and brushwork. Inherit everything from it."
                 }],
                 output_path=str(self.templates["bg_f"]),
-                aspect_ratio="9:16"
+                aspect_ratio="16:9"
             )
 
         # 2. Generate 'style reference' characters
@@ -84,7 +84,7 @@ class AssetManager:
                     "usage": "Ensure consistent background style."
                 }],
                 output_path=str(self.templates["ref_f"]),
-                aspect_ratio="9:16"
+                aspect_ratio="16:9"
             )
 
     def prepare_location_templates(self, detected_style: str):
@@ -308,7 +308,7 @@ class AssetManager:
         view_type = "full body shot"
         prompt = (
             f"{view_type} of {char.name}, {char.description}. {style_prompt}. "
-            f"9:16 aspect ratio. Single character only. No text, no labels, no frames, "
+            f"16:9 aspect ratio. Single character only. No text, no labels, no frames, "
             f"no UI, no infographics. Exactly one depiction of the character. {digital_fix}"
         )
 
@@ -322,7 +322,7 @@ class AssetManager:
                     "usage": "Adopt the art style, line quality, and coloring."
                 }],
                 output_path=str(output_file),
-                aspect_ratio="9:16"
+                aspect_ratio="16:9"
             )
             char.full_body_path = str(output_file)
             char.generation_prompt = prompt
