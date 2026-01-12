@@ -104,14 +104,13 @@ output/
 │       └── ref_01.jpg      # Location reference
 ├── illustrations/          # Final Scene Illustrations
 │   ├── 001_Location_Name/
-│   │   └── illustration.jpg
+│   │   └── illustration.jpg # 16:9 cinematic scene illustration
 │   └── ...
 ├── data.json               # Unified manifest (Style, Characters, Locations, Illustrations)
 └── style_templates/        # Generated style base images
     ├── bg_fullbody.jpg                # 9:16 solid background for characters
     ├── style_reference_fullbody.jpg   # 9:16 character style reference
-    ├── bg_location_16_9.jpg           # 16:9 neutral background for locations
-    └── style_ref_location_16_9.jpg    # 16:9 location style reference
+    └── bg_location_16_9.jpg           # 16:9 neutral background for locations
 ```
 
 ### `data.json` Structure
@@ -125,7 +124,8 @@ The `data.json` file serves as the central manifest for the project.
       "name": "Character Name",
       "original_name": "Original Name from Text",
       "description": "Visual description...",
-      "full_body_path": "output/characters/Name/card_full.jpg"
+      "full_body_path": "output/characters/Name/card_full.jpg",
+      "generation_prompt": "Full generation prompt used..."
     }
   ],
   "locations": [
@@ -133,7 +133,8 @@ The `data.json` file serves as the central manifest for the project.
       "name": "Location Name",
       "original_name": "Original Name from Text",
       "description": "Visual description...",
-      "reference_image_path": "output/locations/Name/ref_01.jpg"
+      "reference_image_path": "output/locations/Name/ref_01.jpg",
+      "generation_prompt": "Full generation prompt used..."
     }
   ],
   "illustrations": [
@@ -151,7 +152,8 @@ The `data.json` file serves as the central manifest for the project.
         }
       ],
       "illustration_path": "illustrations/001_Loc/illustration.jpg",
-      "folder": "001_Location_Name"
+      "folder": "001_Location_Name",
+      "generation_prompt": "Full generation prompt used..."
     }
   ]
 }
