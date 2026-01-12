@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
     # Models as requested by user
     TEXT_MODEL_NAME = os.getenv("TEXT_MODEL_NAME", "gemini-3-pro-preview")
@@ -22,8 +22,8 @@ class Config:
 
     @staticmethod
     def validate():
-        if not Config.GOOGLE_API_KEY:
-            raise ValueError("GOOGLE_API_KEY environment variable is not set.")
+        if not Config.GEMINI_API_KEY:
+            raise ValueError("GEMINI_API_KEY environment variable is not set.")
 
 # Ensure output directories exist structure
 def setup_directories(base_path: Path):

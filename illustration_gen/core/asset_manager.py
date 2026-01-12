@@ -28,7 +28,7 @@ class AssetManager:
             char_path.mkdir(parents=True, exist_ok=True)
 
             desc_file = char_path / "description.txt"
-            img_file = char_path / "ref_01.jpg" # Using jpg as requested
+            img_file = char_path / "ref_01.jpg" # Using jpg as requested or png
 
             # Check if exists
             if img_file.exists():
@@ -42,18 +42,12 @@ class AssetManager:
                 f.write(char.description)
 
             # Generate Reference Image
-            # Prompt construction: Style + Character Description + Portrait specifics
-            prompt = f"""
-            {style_prompt}
-            Character Design Sheet, Portrait.
-            Character: {char.name}
-            Description: {char.description}
-            Neutral expression, front view, clear features for reference.
-            High quality, detailed.
-            """
-
+            # Prompt Pattern: "Character sheet of {name}, {description}. {system_style_prompt}. White background, full body shot, neutral expression, flat lighting."
+            prompt = f"Character sheet of {char.name}, {char.description}. {style_prompt}. White background, full body shot, neutral expression, flat lighting."
+            
             logger.info(f"Generating reference for character: {char.name}")
             try:
+                # We do NOT use reference images here (it's the first gen). 
                 self.ai_client.generate_image(prompt=prompt, output_path=str(img_file))
                 char.reference_image_path = str(img_file)
             except Exception as e:
@@ -79,14 +73,8 @@ class AssetManager:
             with open(desc_file, "w") as f:
                 f.write(loc.description)
 
-            prompt = f"""
-            {style_prompt}
-            Location Concept Art.
-            Location: {loc.name}
-            Description: {loc.description}
-            Wide shot, establishing shot.
-            High quality, detailed.
-            """
+            # Prompt Pattern: "Concept art of {location_name}, {location_description}. {system_style_prompt}. Wide angle, establishing shot."
+            prompt = f"Concept art of {loc.name}, {loc.description}. {style_prompt}. Wide angle, establishing shot."
 
             logger.info(f"Generating reference for location: {loc.name}")
             try:

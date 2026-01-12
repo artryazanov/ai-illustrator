@@ -33,39 +33,42 @@ class StoryIllustrator:
                 continue
 
             # Gather references
+            # Strategy: Focus on Protagonist.
+            # We pick the FIRST character in characters_present as the protagonist for this scene
+            # (Assuming analyzer orders them by importance or presence).
+            
             ref_images = []
-
-            # Character refs
-            char_descriptions = []
-            for char_name in scene.characters_present:
-                ref_path = self.asset_manager.get_character_ref(char_name)
+            main_char_name = None
+            
+            if scene.characters_present:
+                main_char_name = scene.characters_present[0]
+                ref_path = self.asset_manager.get_character_ref(main_char_name)
                 if ref_path:
                     ref_images.append(ref_path)
-                # We also get the description from the asset manager logic if needed,
-                # but we'll rely on the visual prompt construction primarily.
+                    logger.info(f"Scene {scene.id}: Using reference for main character '{main_char_name}'")
 
-            # Location ref
-            loc_ref = self.asset_manager.get_location_ref(scene.location_name)
-            if loc_ref:
-                ref_images.append(loc_ref)
-
+            # We can also add location ref if available, but "Focus on Protagonist" suggests prioritizing people.
+            # However, `ai_client` handles list of refs. If we want to risk it, we add loc.
+            # User warning: "Attempts to insert 5 characters... leads to quality drop".
+            # 1 Char + 1 Loc might be okay? Let's try just Char for now to be safe, or both if reliable.
+            # Let's stick to Char as primary subject per user hint.
+            
             # Construct Prompt
-            # We explicitly mention we are using references if the model supports prompt-logic for it
             prompt = f"""
             {style_prompt}
-
-            Scene Description:
-            {scene.visual_description}
-
+            Transformation of: {scene.visual_description}
             Action: {scene.action_description}
+            Mood: {scene.mood}
             Time: {scene.time_of_day}
             Location: {scene.location_name}
-
-            Characters present: {', '.join(scene.characters_present)}
-
-            Make sure the characters and location match the reference images provided (if any).
-            Create a cohesive, high-quality illustration.
             """
+            
+            if main_char_name:
+                prompt += f"\nMain Character: {main_char_name} (Reference provided)."
+            
+            other_chars = [c for c in scene.characters_present if c != main_char_name]
+            if other_chars:
+                prompt += f"\nOther characters present: {', '.join(other_chars)}."
 
             logger.info(f"Generating illustration for Scene {scene.id}...")
             try:
