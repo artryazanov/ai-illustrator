@@ -7,7 +7,7 @@
 
 AI Illustrator is a powerful tool designed to automatically generate consistent, high-quality illustrations for stories using Google's Gemini models for both text analysis and image generation. It processes a story text file, analyzes it to understand the visual style, characters, and locations, and then generates a sequence of cinematic illustrations.
 
-## Features
+## ✨ Features
 
 -   **Automatic Style Detection**: Analyzes the story text to determine the most appropriate art style and generates consistent illustrations based on that style.
 -   **Character Consistency**:
@@ -25,13 +25,13 @@ AI Illustrator is a powerful tool designed to automatically generate consistent,
 -   **Docker Support**: Fully containerized for easy deployment and execution.
 -   **Comprehensive Testing**: Includes a full suite of unit and integration-like tests using `pytest`.
 
-## Prerequisites
+## 🛠️ Prerequisites
 
 -   **Python 3.10+** (if running locally)
 -   **Docker** & **Docker Compose** (recommended for isolation)
 -   **Google Cloud API Key** with access to Gemini models (including image generation capabilities).
 
-## Installation & Setup
+## 🚀 Installation & Setup
 
 ### 1. Clone the Repository
 ```bash
@@ -84,7 +84,7 @@ Run the application:
 python main.py --text-file data/my_story.txt --output-dir output/my_project_name
 ```
 
-## Usage
+## 💡 Usage
 
 ### Command Line Arguments
 -   `--text-file`: **(Required)** Path to the input text file containing the story.
@@ -115,7 +115,7 @@ output/
 └── style_templates/        # Generated style base images
 ```
 
-## Development & Testing
+## 🧪 Development & Testing
 
 This project uses `pytest` for testing. The test suite covers models, configuration, asset management, and the AI client wrapper.
 
@@ -134,7 +134,7 @@ pytest -v tests
 ### Mocking
 The tests use `unittest.mock` and `pytest-mock` to simulate Google GenAI API responses and filesystem operations, ensuring that tests are fast and do not consume API quota.
 
-## Project Structure
+## 🏗️ Project Structure
 -   `main.py`: Entry point and orchestration logic.
 -   `app/`: Core package.
     -   `config.py`: Configuration and environment management.
@@ -146,6 +146,6 @@ The tests use `unittest.mock` and `pytest-mock` to simulate Google GenAI API res
         -   `models.py`: Pydantic data models.
 -   `tests/`: Test suite.
 
-## License
+## 📜 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
