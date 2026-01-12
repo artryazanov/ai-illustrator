@@ -39,8 +39,8 @@ def test_generate_location_assets_uses_only_bg_ref(asset_manager):
         # Check call arguments for location generation
         args, kwargs = asset_manager.ai_client.generate_image.call_args
         
-        # reference_image_paths should contain ONLY bg_landscape
-        refs = kwargs['reference_image_paths']
+        # reference_images should contain ONLY bg_landscape
+        refs = kwargs['reference_images']
         assert len(refs) == 1
-        assert "bg_location_16_9.jpg" in refs[0]
-        assert "style_ref_location_16_9.jpg" not in refs[0]
+        assert "bg_location_16_9.jpg" in refs[0]['path']
+        assert refs[0]['purpose'] == "Environment Style Template"

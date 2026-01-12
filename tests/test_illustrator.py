@@ -53,7 +53,13 @@ class TestStoryIllustrator:
         illustrator.ai_client.generate_image.assert_called_once()
         args, kwargs = illustrator.ai_client.generate_image.call_args
         assert "Park" in kwargs['prompt'] # Check prompt construction
-        assert "loc_ref.jpg" in kwargs['reference_image_paths']
+        assert len(kwargs['reference_images']) == 2
+        # Check Character Ref
+        assert kwargs['reference_images'][0]['path'] == "f.jpg"
+        assert kwargs['reference_images'][0]['purpose'] == "Character Appearance Reference for Alice"
+        # Check Location Ref
+        assert kwargs['reference_images'][1]['path'] == "loc_ref.jpg"
+        assert kwargs['reference_images'][1]['purpose'] == "Location Environment Reference"
 
     def test_select_character_ref_portrait(self, illustrator):
         scene = Scene(

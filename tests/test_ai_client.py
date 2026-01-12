@@ -74,11 +74,27 @@ class TestGenAIClient:
             
             output_path = tmp_path / "result.jpg"
             
-            ai_client.generate_image("prompt", reference_image_paths=[str(ref_path)], output_path=str(output_path))
+            ref_data = [{
+                "path": str(ref_path),
+                "purpose": "Test Purpose",
+                "usage": "Test Usage"
+            }]
+            
+            ai_client.generate_image("prompt", reference_images=ref_data, output_path=str(output_path))
             
             # Check if contents list includes the image
             args, kwargs = mock_instance.models.generate_content.call_args
             contents = kwargs['contents']
-            assert len(contents) == 2 # Prompt + Image
+            
+            # Validate contents structure: [PromptString, ImageObject]
+            assert len(contents) == 2 
+            
+            # 1. Validate Prompt Augmentation
+            assert "prompt" in contents[0]
+            assert "Reference Images Context" in contents[0]
+            assert "File: ref.jpg" in contents[0]
+            assert "Purpose: Test Purpose" in contents[0]
+            
+            # 2. Validate Image Passing
             assert contents[1] == "ParsedImage"
 

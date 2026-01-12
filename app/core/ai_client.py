@@ -49,25 +49,47 @@ class GenAIClient:
             logger.warning(f"Translation failed for '{text}': {e}. Using original name.")
             return text
 
-    def generate_image(self, prompt: str, reference_image_paths: Optional[List[str]] = None, output_path: str = None, aspect_ratio: str = "16:9") -> str:
+    def generate_image(self, prompt: str, reference_images: Optional[List[Dict[str, str]]] = None, output_path: str = None, aspect_ratio: str = "16:9") -> str:
         """
         Generates an image using the configured model. 
         Uses generate_content for multimodal inputs (Subject References) if provided.
+        
+        Args:
+            prompt: The main prompt for image generation.
+            reference_images: List of dicts, each containing:
+                - path: str (required)
+                - purpose: str (optional, e.g. "Character Reference")
+                - usage: str (optional, e.g. "Adopt style and appearance")
+            output_path: Path to save the generated image.
+            aspect_ratio: Aspect ratio for the image.
         """
-        if reference_image_paths is None:
-            reference_image_paths = []
+        if reference_images is None:
+            reference_images = []
 
         try:
-            logger.info(f"Generating image with model {self.image_model_name}. Refs: {len(reference_image_paths)}")
+            logger.info(f"Generating image with model {self.image_model_name}. Refs: {len(reference_images)}")
 
             # The user provided docs confirm that 'gemini-3-pro-image-preview' uses 'generate_content'
             # for both text-to-image and multimodal image gen.
             # 'generate_images' is for Imagen or older endpoints, but 'predict' 404s suggest mismatch.
             # We will switch to unified 'generate_content' for everything.
+            
+            # Construct enhanced prompt with reference context
+            final_prompt = prompt
+            if reference_images:
+                final_prompt += "\n\nReference Images Context:"
+                for ref in reference_images:
+                    path = ref.get('path')
+                    if path:
+                        filename = os.path.basename(path)
+                        purpose = ref.get('purpose', 'Reference')
+                        usage = ref.get('usage', 'Use as visual reference.')
+                        final_prompt += f"\n- File: {filename}\n  Purpose: {purpose}\n  Instruction: {usage}"
 
-            contents = [prompt]
-            if reference_image_paths:
-                for ref_path in reference_image_paths:
+            contents = [final_prompt]
+            if reference_images:
+                for ref in reference_images:
+                    ref_path = ref.get('path')
                     if ref_path and os.path.exists(ref_path):
                             try:
                                 contents.append(Image.open(ref_path))

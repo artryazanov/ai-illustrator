@@ -56,7 +56,11 @@ class AssetManager:
         if not self.templates["bg_f"].exists():
             self.ai_client.generate_image(
                 f"{bg_base_prompt}. Wide shot environment focus.",
-                reference_image_paths=[str(self.loc_templates["bg_landscape"])],
+                reference_images=[{
+                    "path": str(self.loc_templates["bg_landscape"]),
+                    "purpose": "Style Reference",
+                    "usage": "Match the visual style and rendering technique."
+                }],
                 output_path=str(self.templates["bg_f"]),
                 aspect_ratio="9:16"
             )
@@ -70,7 +74,11 @@ class AssetManager:
         if not self.templates["ref_f"].exists():
             self.ai_client.generate_image(
                 f"{style_ref_prompt}. Full body shot, standing.",
-                reference_image_paths=[str(self.templates["bg_f"])], # Use our bg
+                reference_images=[{
+                    "path": str(self.templates["bg_f"]),
+                    "purpose": "Background Style Reference",
+                    "usage": "Ensure consistent background style."
+                }],
                 output_path=str(self.templates["ref_f"]),
                 aspect_ratio="9:16"
             )
@@ -275,15 +283,17 @@ class AssetManager:
         try:
             self.ai_client.generate_image(
                 prompt=prompt,
-                reference_image_paths=[str(style_ref)],
+                reference_images=[{
+                    "path": str(style_ref),
+                    "purpose": "Character Style Reference",
+                    "usage": "Adopt the art style, line quality, and coloring."
+                }],
                 output_path=str(output_file),
                 aspect_ratio="9:16"
             )
             char.full_body_path = str(output_file)
         except Exception as e:
             logger.error(f"Failed to generate full body for {char.name}: {e}")
-
-    # _load_location_catalog and _save_location_catalog removed in favor of unified _load_data/_save_data
 
     def generate_location_assets(self, locations: List[Location], style_prompt: str):
         for loc in locations:
@@ -312,9 +322,11 @@ class AssetManager:
             try:
                 self.ai_client.generate_image(
                     prompt=prompt,
-                    reference_image_paths=[
-                        str(self.loc_templates["bg_landscape"])
-                    ],
+                    reference_images=[{
+                        "path": str(self.loc_templates["bg_landscape"]),
+                        "purpose": "Environment Style Template",
+                        "usage": "Use as stylistic foundation."
+                    }],
                     output_path=str(img_file),
                     aspect_ratio="16:9"
                 )

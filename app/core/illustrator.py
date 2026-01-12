@@ -112,19 +112,26 @@ class StoryIllustrator:
         logger.info(f"Global manifest saved to {manifest_path}")
 
     def _generate_scene_image(self, scene: Scene, style_prompt: str, output_path: Path):
-        ref_images = []
+        reference_images = []
         
-        # Logic to choose best reference (Portrait vs Full Body)
         if scene.characters_present:
             main_char_name = scene.characters_present[0]
             ref_path = self._select_character_ref(main_char_name, scene)
             if ref_path:
-                ref_images.append(ref_path)
+                reference_images.append({
+                    "path": ref_path,
+                    "purpose": f"Character Appearance Reference for {main_char_name}",
+                    "usage": "Maintain consistency with this character design."
+                })
 
         # Add location reference (16:9)
         loc_ref = self.asset_manager.get_location_ref(scene.location_name)
         if loc_ref:
-            ref_images.append(loc_ref)
+            reference_images.append({
+                "path": loc_ref,
+                "purpose": "Location Environment Reference",
+                "usage": "Set the scene in this environment."
+            })
 
         # Enhanced prompt to prevent comic layout
         prompt = (
@@ -140,7 +147,7 @@ class StoryIllustrator:
         try:
             self.ai_client.generate_image(
                 prompt=prompt,
-                reference_image_paths=ref_images,
+                reference_images=reference_images,
                 output_path=str(output_path),
                 aspect_ratio="16:9"
             )

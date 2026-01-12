@@ -40,6 +40,7 @@ def test_prepare_style_templates_uses_bg_landscape_ref(asset_manager):
         assert bg_f_call is not None
         
         # Check reference paths
-        refs = bg_f_call.kwargs.get('reference_image_paths', [])
+        refs = bg_f_call.kwargs.get('reference_images', [])
         assert len(refs) == 1
-        assert "bg_location_16_9.jpg" in refs[0]
+        assert "bg_location_16_9.jpg" in refs[0]['path']
+        assert refs[0]['purpose'] == "Style Reference"
