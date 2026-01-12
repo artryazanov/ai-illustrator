@@ -51,10 +51,6 @@ def main(text_file, style_prompt, output_dir):
     detected_style = analyzer.extract_style(style_sample, style_prompt)
     logger.info(f"Detected Style: {detected_style}")
 
-    # Save style for reference
-    with open(output_path / "style_prompt.txt", "w") as f:
-        f.write(detected_style)
-        
     # Prepare global templates (Characters 9:16 and Locations 16:9)
     asset_manager.prepare_style_templates(detected_style)
     asset_manager.prepare_location_templates(detected_style)

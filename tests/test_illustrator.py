@@ -40,9 +40,14 @@ class TestStoryIllustrator:
         scene_dir = illustrator.output_dir / "001_Park"
         assert scene_dir.exists()
         
-        # Verify JSON writing (metadata + global manifest)
-        # We expect open calls for scene_data.json and illustrations_sequence.json
-        assert mocked_file.call_count >= 2 
+        # Verify JSON writing (metadata + global data.json)
+        # We expect open calls ONLY for data.json
+        assert mocked_file.call_count == 1
+        
+        # Verify scene data file is NOT created
+        scene_metadata_file = illustrator.output_dir / "001_Park" / "scene_data.json"
+        # Since we use mock_open, we can't test file existence directly if we didn't write to it via open()
+        # But we asserted call_count == 1, which corresponds to _save_data_json
         
         # Verify Image Generation
         illustrator.ai_client.generate_image.assert_called_once()

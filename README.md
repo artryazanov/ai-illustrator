@@ -12,11 +12,11 @@ AI Illustrator is a powerful tool designed to automatically generate consistent,
 -   **Automatic Style Detection**: Analyzes the story text to determine the most appropriate art style and generates consistent illustrations based on that style.
 -   **Character Consistency**:
     -   Extracts character descriptions and generates reference "character sheets" (Portrait and Full Body).
-    -   Maintains a persistent catalog of characters (`output/characters/characters.json`) to ensure the same character looks consistent throughout the story.
+    -   Maintains a persistent catalog of characters in `output/data.json` to ensure the same character looks consistent throughout the story.
     -   Uses reference images (multimodal generation) to keep character appearance stable across different scenes.
 -   **Location Consistency**:
     -   Generates and caches location reference images (16:9 cinematic shots).
-    -   Maintains a location catalog (`output/locations/locations.json`) to reuse settings.
+    -   Maintains a location catalog in `output/data.json` to reuse settings.
 -   **Cinematic Scene Generation**:
     -   Splits the story into logical scenes.
     -   Generates a single, cohesive cinematic frame for each scene (16:9 aspect ratio).
@@ -97,22 +97,63 @@ The tool creates an organized output directory:
 ```
 output/
 ├── characters/             # Character assets
-│   ├── characters.json     # Global character catalog
 │   └── Character_Name/     # Specific character folder
 │       ├── card_port.jpg   # Portrait reference
-│       ├── card_full.jpg   # Full body reference
-│       └── description.txt
+│       └── card_full.jpg   # Full body reference
 ├── locations/              # Location assets
-│   ├── locations.json      # Global location catalog
 │   └── Location_Name/
 │       └── ref_01.jpg      # Location reference
 ├── illustrations/          # Final Scene Illustrations
 │   ├── 001_Location_Name/
-│   │   ├── illustration.jpg
-│   │   └── scene_data.json # Metadata for the scene
+│   │   └── illustration.jpg
 │   └── ...
-├── illustrations_sequence.json # Ordered manifest of all generated scenes
+├── data.json               # Unified manifest (Style, Characters, Locations, Illustrations)
 └── style_templates/        # Generated style base images
+```
+
+### `data.json` Structure
+The `data.json` file serves as the central manifest for the project.
+
+```json
+{
+  "style_prompt": "Description of the visual style...",
+  "characters": [
+    {
+      "name": "Character Name",
+      "original_name": "Original Name from Text",
+      "description": "Visual description...",
+      "portrait_path": "output/characters/Name/card_port.jpg",
+      "full_body_path": "output/characters/Name/card_full.jpg"
+    }
+  ],
+  "locations": [
+    {
+      "name": "Location Name",
+      "original_name": "Original Name from Text",
+      "description": "Visual description...",
+      "reference_image_path": "output/locations/Name/ref_01.jpg"
+    }
+  ],
+  "illustrations": [
+    {
+      "scene_id": 1,
+      "story_segment": "Original text of the scene...",
+      "location": {
+        "name": "Location Name",
+        "path": "output/locations/Name/ref_01.jpg"
+      },
+      "characters": [
+        {
+          "name": "Character Name",
+          "portrait_path": "output/characters/Name/card_port.jpg",
+          "full_body_path": "output/characters/Name/card_full.jpg"
+        }
+      ],
+      "illustration_path": "illustrations/001_Loc/illustration.jpg",
+      "folder": "001_Location_Name"
+    }
+  ]
+}
 ```
 
 ## 🧪 Development & Testing

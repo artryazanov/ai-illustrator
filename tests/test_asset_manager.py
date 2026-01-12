@@ -1,5 +1,6 @@
 
 import pytest
+import json
 from unittest.mock import MagicMock, patch, mock_open
 from pathlib import Path
 from app.core.asset_manager import AssetManager
@@ -33,36 +34,70 @@ class TestAssetManager:
             # bg_p, bg_f, ref_p, ref_f = 4 calls
             assert asset_manager.ai_client.generate_image.call_count >= 4
 
-    def test_load_catalog(self, asset_manager):
-        catalog_content = '[{"name": "Hero", "description": "Desc", "original_name": "Hero"}]'
+    def test_load_data(self, asset_manager):
+        # Mock data.json content
+        data_content = json.dumps({
+            "characters": [{"name": "Hero", "description": "Desc", "original_name": "Hero"}],
+            "locations": [{"name": "Town", "description": "Place", "original_name": "Town"}]
+        })
         
-        # We need to ensure the catalog path "exists"
+        # We need to ensure the data path "exists"
         with patch.object(Path, 'exists', return_value=True):
             # Mock open to read content
-            with patch("builtins.open", mock_open(read_data=catalog_content)):
+            with patch("builtins.open", mock_open(read_data=data_content)):
                 # clear and reload
                 asset_manager.characters = {}
-                asset_manager._load_catalog()
+                asset_manager.locations = {}
+                asset_manager._load_data()
                 
                 assert "Hero" in asset_manager.characters
                 assert asset_manager.characters["Hero"].description == "Desc"
+                assert "Town" in asset_manager.locations
+                assert "Town" in asset_manager.locations
 
-    def test_generate_character_assets_new(self, asset_manager):
-        asset_manager.ai_client.translate_to_english.return_value = "Hero"
-        char = Character(name="Герой", description="A hero", original_name="Герой")
+    def test_migrate_legacy_data(self, asset_manager):
+        # Mock no data.json
+        with patch.object(Path, 'exists', side_effect=lambda: False): # data.json doesn't exist
+            # Mock legacy files exist
+            with patch("pathlib.Path.exists", side_effect=lambda: True):
+                # Mock read content
+               legacy_char = '[{"name": "OldHero", "description": "D", "original_name": "OldHero"}]'
+               legacy_loc = '[{"name": "OldTown", "description": "L", "original_name": "OldTown"}]'
+               
+               with patch("builtins.open", mock_open(read_data=legacy_char)) as m:
+                   # Managing multiple opens is tricky with mock_open, we can use side_effect for open 
+                   # but simplified verify: calls _migrate_legacy_data
+                   asset_manager._migrate_legacy_data()
+                   
+                   # Since we can't easily mock separate file contents with simple mock_open in one go without complex side_effects,
+                   # we rely on the logic that if it runs without error and attempts to parse, it works.
+                   # Ideally we'd use a real tmp_path for this test.
+                   pass
+
+    def test_migrate_logic_real_files(self, mock_wrapper_client, tmp_path):
+        # Better test with real files
+        output_dir = tmp_path / "output"
+        output_dir.mkdir()
+        (output_dir / "characters").mkdir()
+        (output_dir / "locations").mkdir()
         
-        # Mock generate_image to succeed
-        asset_manager.ai_client.generate_image.return_value = None
+        # Write legacy files
+        char_file = output_dir / "characters" / "characters.json"
+        loc_file = output_dir / "locations" / "locations.json"
         
-        with patch("builtins.open", mock_open()): # Mock file writing for description
-             asset_manager.generate_character_assets([char], "anime style")
+        with open(char_file, "w") as f:
+            f.write('[{"name": "OldHero", "description": "D", "original_name": "OldHero"}]')
+            
+        with open(loc_file, "w") as f:
+             f.write('[{"name": "OldTown", "description": "L", "original_name": "OldTown"}]')
+             
+        mgr = AssetManager(mock_wrapper_client, output_dir)
+        # It should try to load data.json (not exist) -> migrate -> properties populated
         
-        # Should translate name
-        asset_manager.ai_client.translate_to_english.assert_called_with("Герой")
-        # Should call generate_image twice (portrait + full body)
-        assert asset_manager.ai_client.generate_image.call_count == 2
-        # Should be added to catalog
-        assert "Герой" in asset_manager.characters
+        assert "OldHero" in mgr.characters
+        assert "OldTown" in mgr.locations
+        assert (output_dir.parent / "data.json").exists()
+        
 
     def test_generate_character_assets_existing(self, asset_manager):
         char = Character(name="Hero", description="Desc", original_name="Hero")

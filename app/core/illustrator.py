@@ -26,7 +26,6 @@ class StoryIllustrator:
             scene_dir = self.output_dir / scene_folder_name
             scene_dir.mkdir(parents=True, exist_ok=True)
 
-            metadata_file = scene_dir / "scene_data.json"
             img_file = scene_dir / "illustration.jpg"
 
             # 1. Collect location info
@@ -56,18 +55,12 @@ class StoryIllustrator:
                 "story_segment": scene.original_text_segment,
                 "location": location_info,
                 "characters": characters_info,
-                "illustration_path": str(img_file.relative_to(self.output_dir.parent))
+                "illustration_path": str(img_file.relative_to(self.output_dir.parent)),
+                "folder": scene_folder_name
             }
             
-            with open(metadata_file, "w", encoding="utf-8") as f:
-                json.dump(scene_metadata, f, ensure_ascii=False, indent=4)
-
             # Add to global registry
-            self.illustrations_registry.append({
-                "scene_id": scene.id,
-                "illustration_path": scene_metadata["illustration_path"],
-                "folder": scene_folder_name
-            })
+            self.illustrations_registry.append(scene_metadata)
 
             if img_file.exists():
                 logger.info(f"Illustration for scene {scene.id} exists. Skipping generation.")
@@ -76,15 +69,46 @@ class StoryIllustrator:
             self._generate_scene_image(scene, style_prompt, img_file)
 
         # Save global manifest after processing all scenes
-        self._save_global_manifest()
+        self._save_data_json(style_prompt)
 
-    def _save_global_manifest(self):
-        """Creates a global JSON manifest with all illustrations in order."""
-        manifest_path = self.output_dir.parent / "illustrations_sequence.json"
+    def _save_data_json(self, style_prompt: str):
+        """Creates a global JSON manifest with all illustrations, style, characters, and locations."""
+        manifest_path = self.output_dir.parent / "data.json"
         ordered_list = sorted(self.illustrations_registry, key=lambda x: x['scene_id'])
         
+        # Collect character data for export
+        char_list = []
+        for name, char in self.asset_manager.characters.items():
+            folder_name = Path(char.reference_image_path).parent.name if char.reference_image_path else ""
+            char_list.append({
+                "original_name": char.original_name or name,
+                "name": char.name,
+                "folder_name": folder_name,
+                "description": char.description,
+                "reference_image_path": char.reference_image_path,
+                "portrait_path": char.portrait_path,
+                "full_body_path": char.full_body_path
+            })
+
+        # Collect location data for export
+        loc_list = []
+        for name, loc in self.asset_manager.locations.items():
+            loc_list.append({
+                "original_name": loc.original_name or name,
+                "name": loc.name,
+                "description": loc.description,
+                "reference_image_path": loc.reference_image_path
+            })
+
+        data = {
+            "style_prompt": style_prompt,
+            "characters": char_list,
+            "locations": loc_list,
+            "illustrations": ordered_list
+        }
+        
         with open(manifest_path, "w", encoding="utf-8") as f:
-            json.dump(ordered_list, f, ensure_ascii=False, indent=4)
+            json.dump(data, f, ensure_ascii=False, indent=4)
         logger.info(f"Global manifest saved to {manifest_path}")
 
     def _generate_scene_image(self, scene: Scene, style_prompt: str, output_path: Path):
