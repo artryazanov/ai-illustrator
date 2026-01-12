@@ -248,21 +248,31 @@ class AssetManager:
         next_id = max(existing_ids) + 1 if existing_ids else 1
 
         for char in characters:
-            # 1. Check catalog first
+            # 1. Check catalog first (exact match)
             if char.name in self.characters:
                 logger.info(f"Character {char.name} found in catalog. Using existing assets.")
                 existing_char = self.characters[char.name]
                 char.id = existing_char.id
-
                 char.full_body_path = existing_char.full_body_path
                 char.reference_image_path = existing_char.reference_image_path or existing_char.full_body_path
+                continue
+
+            # 2. Check catalog semantic match (AI check)
+            semantic_match = self._check_existing_character_semantic(char)
+            if semantic_match:
+                logger.info(f"Character {char.name} semantically matches existing {semantic_match.name}. Reusing assets.")
+                char.id = semantic_match.id
+                char.full_body_path = semantic_match.full_body_path
+                char.reference_image_path = semantic_match.reference_image_path or semantic_match.full_body_path
+                # We keep the new name for the story, but reuse the visual assets.
+                self.characters[char.name] = char # Map new name to existing assets object structure
                 continue
 
             # Assign new ID
             char.id = next_id
             next_id += 1
 
-            # 2. Prepare filename: id_snake_case_name.jpeg
+            # 3. Prepare filename: id_snake_case_name.jpeg
             english_name = self.ai_client.translate_to_english(char.name)
             safe_name = "".join(x for x in english_name if x.isalnum() or x in (' ', '_', '-')).strip().replace(' ', '_').lower()
             filename = f"{char.id}_{safe_name}.jpeg"
@@ -271,7 +281,7 @@ class AssetManager:
             self.char_dir.mkdir(parents=True, exist_ok=True)
             output_file = self.char_dir / filename
 
-            # 3. Generate Cards
+            # 4. Generate Cards
             # Generate Full Body directly to final path
             if self._generate_single_card(char, style_prompt, output_file):
                 # Set legacy reference path to full body as default
@@ -279,7 +289,7 @@ class AssetManager:
                 char.reference_image_path = char.full_body_path
                 char.original_name = char.name
             
-            # 4. Update Data
+            # 5. Update Data
             self.characters[char.name] = char
             self._save_data()
 
@@ -323,13 +333,23 @@ class AssetManager:
         next_id = max(existing_ids) + 1 if existing_ids else 1
 
         for loc in locations:
-            # Check catalog first (fuzzy match)
+            # 1. Check catalog first (exact match)
             existing_loc = self.get_location_data(loc.name)
             if existing_loc:
                 logger.info(f"Location {loc.name} matches existing {existing_loc.name}. Reusing assets.")
                 loc.id = existing_loc.id
                 loc.reference_image_path = existing_loc.reference_image_path
                 loc.generation_prompt = existing_loc.generation_prompt
+                continue
+
+            # 2. Check catalog semantic match (AI check)
+            semantic_match = self._check_existing_location_semantic(loc)
+            if semantic_match:
+                logger.info(f"Location {loc.name} semantically matches existing {semantic_match.name}. Reusing assets.")
+                loc.id = semantic_match.id
+                loc.reference_image_path = semantic_match.reference_image_path
+                loc.generation_prompt = semantic_match.generation_prompt
+                self.locations[loc.name] = loc 
                 continue
 
             # Assign new ID
@@ -375,6 +395,106 @@ class AssetManager:
                 
             except Exception as e:
                 logger.error(f"Failed to generate location {loc.name}: {e}")
+
+    def _check_existing_character_semantic(self, new_char: Character) -> Optional[Character]:
+        """Uses AI to check if the new character matches any existing character description."""
+        if not self.characters:
+            return None
+
+        # Build list of existing candidates (unique by ID to avoid dupes in prompt)
+        # Use a dict to dedup by ID
+        unique_chars = {}
+        for c in self.characters.values():
+            if c.id is not None and c.id not in unique_chars:
+                unique_chars[c.id] = c
+        
+        if not unique_chars:
+            return None
+
+        candidates_text = "\n".join([f"- ID {c.id}: Name='{c.name}', Description='{c.description}'" for c in unique_chars.values()])
+
+        prompt = f"""
+        I have a new character from a story and a database of existing characters.
+        Determine if the new character is actually the SAME person as one of the existing characters, just referred to by a different name or description style.
+        
+        New Character:
+        Name: "{new_char.name}"
+        Description: "{new_char.description}"
+
+        Existing Characters Database:
+        {candidates_text}
+
+        Task: Compare the New Character to the database. 
+        If there is a CLEAR and UNAMBIGUOUS match (e.g. "Main Hero" vs "The Hero", or similar physical description and role), return the ID of the existing character.
+        If it is a new character or you are unsure, return null.
+        
+        Return ONLY a JSON object: {{"match_id": <int or null>, "reason": "<string>"}}
+        """
+
+        try:
+            response_text = self.ai_client.generate_text(prompt, schema=None)
+            # Cleanup json
+            clean_text = response_text.replace("```json", "").replace("```", "").strip()
+            data = json.loads(clean_text)
+            
+            match_id = data.get("match_id")
+            if match_id is not None:
+                # Find the object with this ID
+                for c in unique_chars.values():
+                    if c.id == match_id:
+                        return c
+            return None
+        except Exception as e:
+            logger.warning(f"Semantic match check failed for character {new_char.name}: {e}")
+            return None
+
+    def _check_existing_location_semantic(self, new_loc: Location) -> Optional[Location]:
+        """Uses AI to check if the new location matches any existing location description."""
+        if not self.locations:
+            return None
+
+        unique_locs = {}
+        for l in self.locations.values():
+            if l.id is not None and l.id not in unique_locs:
+                unique_locs[l.id] = l
+        
+        if not unique_locs:
+            return None
+
+        candidates_text = "\n".join([f"- ID {l.id}: Name='{l.name}', Description='{l.description}'" for l in unique_locs.values()])
+
+        prompt = f"""
+        I have a new location from a story scene and a database of existing locations.
+        Determine if the new location is the SAME place as one of the existing locations.
+
+        New Location:
+        Name: "{new_loc.name}"
+        Description: "{new_loc.description}"
+
+        Existing Locations Database:
+        {candidates_text}
+
+        Task: Compare the New Location to the database.
+        If it refers to the same place (e.g. "Kitchen" vs "Old Kitchen", or "Forest edge" vs "Dark Forest" if descriptions align), return the ID.
+        If not match, return null.
+
+        Return ONLY a JSON object: {{"match_id": <int or null>, "reason": "<string>"}}
+        """
+
+        try:
+            response_text = self.ai_client.generate_text(prompt, schema=None)
+            clean_text = response_text.replace("```json", "").replace("```", "").strip()
+            data = json.loads(clean_text)
+            
+            match_id = data.get("match_id")
+            if match_id is not None:
+                for l in unique_locs.values():
+                    if l.id == match_id:
+                        return l
+            return None
+        except Exception as e:
+            logger.warning(f"Semantic match check failed for location {new_loc.name}: {e}")
+            return None
 
     def get_character_data(self, name: str) -> Optional[Character]:
         if name in self.characters:
