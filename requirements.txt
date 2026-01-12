@@ -2,3 +2,5 @@ google-genai
 python-dotenv
 click
 pillow
+pytest
+pytest-mock
