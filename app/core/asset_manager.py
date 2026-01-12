@@ -324,6 +324,7 @@ class AssetManager:
                 f"Digital landscape art of {loc.name}, {loc.description}. {style_prompt}. "
                 f"16:9 aspect ratio, cinematic wide shot. "
                 f"Single view, no text, no labels, no split screen, no frames. "
+                f"No people, no characters, no figures, no humans, no living beings. Empty scene, architecture and nature only. "
                 f"High quality environment design. {digital_fix}"
             )
 
