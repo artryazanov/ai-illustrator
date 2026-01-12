@@ -64,6 +64,70 @@ class GenAIClient:
             logger.warning(f"Slug generation failed: {e}. Using fallback.")
             return "scene"
 
+    def analyze_scene_for_highlight(self, scene_text: str, available_characters: List[str] = None) -> Dict[str, Any]:
+        """
+        Analyzes the scene text to identify the most visually striking and significant moment
+        for illustration, avoiding temporal inconsistencies of long scenes.
+        
+        Args:
+            scene_text: The text of the scene to analyze.
+            available_characters: List of character names known to be in the scene.
+            
+        Returns:
+            dict: {
+                "highlight_description": "Description of the specific moment",
+                "image_prompt": "Detailed image generation prompt for this moment",
+                "active_characters": ["Char1", "Char2"] # Subset of available_characters present in the highlight
+            }
+        """
+        char_context = ""
+        if available_characters:
+            char_list_str = ", ".join(available_characters)
+            char_context = (
+                f"The following characters are present in the full scene: {char_list_str}.\n"
+                "Identify EXACTLY which of these characters are visible in the specific highlight moment you chose. "
+                "Only list characters that are visually present in this split-second."
+            )
+
+        try:
+            prompt = (
+                "Analyze the following scene text. This scene might cover a period of time with multiple actions.\n"
+                "To create a SINGLE cohesive illustration, identify the MOST visually striking, dramatic, or significant split-second moment.\n"
+                "Ignore everything that happens before or after this specific moment to avoid generated artifacts (like a character doing two things at once).\n\n"
+                f"Scene Text: \"{scene_text}\"\n\n"
+                f"{char_context}\n\n"
+                "Return a JSON object with exactly these keys:\n"
+                "- \"highlight_description\": A brief explanation of the chosen moment.\n"
+                "- \"image_prompt\": A highly detailed visual description of THIS SPECIFIC MOMENT ONLY. "
+                "Describe the subjects, action, lighting, and camera angle. "
+                "Do NOT mention that it is a 'highlight' or 'moment', just describe the visual content.\n"
+                "- \"active_characters\": A list of strings containing ONLY the names of characters from the provided list that are in this moment."
+            )
+            
+            response_text = self.generate_text(prompt, schema=None) # Start with plain text, relying on model to output JSON
+            
+            # Clean up potential markdown blocks if the model wraps JSON
+            clean_text = response_text.replace("```json", "").replace("```", "").strip()
+            
+            data = json.loads(clean_text)
+            
+            # Validate active_characters against available_characters if possible
+            if available_characters and "active_characters" in data:
+                # Filter to ensure we only get known characters, handling potential hallucinations
+                valid_chars = [c for c in data["active_characters"] if c in available_characters]
+                data["active_characters"] = valid_chars
+                
+            return data
+            
+        except Exception as e:
+            logger.error(f"Failed to analyze scene highlight: {e}")
+            # Fallback
+            return {
+                "highlight_description": "Fallback: Full scene context",
+                "image_prompt": scene_text,
+                "active_characters": available_characters or []
+            }
+
     def generate_image(self, prompt: str, reference_images: Optional[List[Dict[str, str]]] = None, output_path: str = None, aspect_ratio: str = "16:9") -> str:
         """
         Generates an image using the configured model. 

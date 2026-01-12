@@ -69,7 +69,16 @@ class StoryIllustrator:
                 logger.info(f"Illustration for scene {scene.id} exists. Skipping generation.")
                 continue
 
-            prompt = self._generate_scene_image(scene, style_prompt, img_file)
+            # Analyze highlight moment to avoid temporal artifacts in long scenes
+            logger.info(f"Analyzing scene {scene.id} for highlight moment...")
+            highlight_data = self.ai_client.analyze_scene_for_highlight(
+                scene.original_text_segment, 
+                available_characters=scene.characters_present
+            )
+            highlight_prompt = highlight_data.get("image_prompt")
+            active_characters = highlight_data.get("active_characters")
+
+            prompt = self._generate_scene_image(scene, style_prompt, img_file, highlight_prompt, active_characters)
             if prompt:
                 scene_metadata["generation_prompt"] = prompt
 
@@ -118,16 +127,20 @@ class StoryIllustrator:
             json.dump(data, f, ensure_ascii=False, indent=4)
         logger.info(f"Global manifest saved to {manifest_path}")
 
-    def _generate_scene_image(self, scene: Scene, style_prompt: str, output_path: Path) -> Optional[str]:
+    def _generate_scene_image(self, scene: Scene, style_prompt: str, output_path: Path, highlight_prompt: Optional[str] = None, active_characters: Optional[List[str]] = None) -> Optional[str]:
         reference_images = []
         
-        if scene.characters_present:
-            main_char_name = scene.characters_present[0]
-            ref_path = self._select_character_ref(main_char_name, scene)
+        # Determine which characters to include in the reference
+        # If highlight analysis provided active_characters (even empty list), use it.
+        # Otherwise fall back to all characters present in the scene.
+        chars_to_include = active_characters if active_characters is not None else scene.characters_present
+        
+        for char_name in chars_to_include:
+            ref_path = self._select_character_ref(char_name, scene)
             if ref_path:
                 reference_images.append({
                     "path": ref_path,
-                    "purpose": f"Character Appearance Reference for {main_char_name}",
+                    "purpose": f"Character Appearance Reference for {char_name}",
                     "usage": "Maintain consistency with this character design."
                 })
 
@@ -140,12 +153,15 @@ class StoryIllustrator:
                 "usage": "Set the scene in this environment."
             })
 
+        # Use the specific highlight prompt if available, otherwise fall back to visual description
+        visual_core = highlight_prompt if highlight_prompt else scene.visual_description
+
         # Enhanced prompt to prevent comic layout
         prompt = (
             f"{style_prompt}. **Single cinematic frame. One single cohesive image.**\n"
             f"**STRICTLY NO multi-panels, NO comic book layout, NO grid, NO split screen, NO storyboard, NO frames.**\n"
             f"**NO text, NO captions, NO speech bubbles.**\n"
-            f"Scene context: {scene.visual_description}\n"
+            f"Scene context: {visual_core}\n"
             f"Action taking place: {scene.action_description}\n"
             f"Setting: {scene.location_name}, {scene.time_of_day}. Mood: {scene.mood}."
         )
