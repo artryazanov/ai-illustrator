@@ -323,8 +323,13 @@ class AssetManager:
         next_id = max(existing_ids) + 1 if existing_ids else 1
 
         for loc in locations:
-            # Check catalog first
-            if loc.name in self.locations:
+            # Check catalog first (fuzzy match)
+            existing_loc = self.get_location_data(loc.name)
+            if existing_loc:
+                logger.info(f"Location {loc.name} matches existing {existing_loc.name}. Reusing assets.")
+                loc.id = existing_loc.id
+                loc.reference_image_path = existing_loc.reference_image_path
+                loc.generation_prompt = existing_loc.generation_prompt
                 continue
 
             # Assign new ID
