@@ -7,7 +7,7 @@ class Character(BaseModel):
     description: str = Field(description="Detailed physical appearance description")
     generation_prompt: Optional[str] = Field(default=None, description="The prompt used to generate the image")
     reference_image_path: Optional[str] = Field(default=None, description="Path to the generated reference image")
-    portrait_path: Optional[str] = Field(default=None, description="Path to the portrait reference image")
+
     full_body_path: Optional[str] = Field(default=None, description="Path to the full body reference image")
     original_name: Optional[str] = Field(default=None, description="Original name from the text")
 

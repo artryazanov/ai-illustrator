@@ -31,11 +31,11 @@ class StoryIllustrator:
             img_file = self.output_dir / filename
 
             # 2. Collect location info
-            loc_data = self.asset_manager.locations.get(scene.location_name)
+            # 2. Collect location info
+            loc_data = self.asset_manager.get_location_data(scene.location_name)
             location_info = {
                 "id": getattr(loc_data, 'id', None),
-                "name": scene.location_name,
-                "path": loc_data.reference_image_path if loc_data else None
+                "name": scene.location_name
             }
 
             # 3. Collect character info
@@ -47,7 +47,6 @@ class StoryIllustrator:
                     characters_info.append({
                         "id": getattr(char_data, 'id', None),
                         "name": char_name,
-                        "portrait_path": getattr(char_data, 'portrait_path', None),
                         "full_body_path": getattr(char_data, 'full_body_path', None)
                     })
 
@@ -99,7 +98,7 @@ class StoryIllustrator:
                 "name": char.name,
                 "description": char.description,
                 "reference_image_path": char.reference_image_path,
-                "portrait_path": char.portrait_path,
+
                 "full_body_path": char.full_body_path,
                 "generation_prompt": char.generation_prompt
             })

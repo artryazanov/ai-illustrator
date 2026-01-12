@@ -34,7 +34,7 @@ class AssetManager:
             "bg_landscape": self.template_dir / "bg_location_16_9.jpg"
         }
         
-        self.data_path = self.output_dir.parent / "data.json"
+        self.data_path = self.output_dir / "data.json"
         
         # Load initial data
         self._load_data()
@@ -119,7 +119,7 @@ class AssetManager:
                             name=item.get('name', item.get('original_name', 'Unknown')),
                             description=item['description'],
                             reference_image_path=item.get('reference_image_path'),
-                            portrait_path=item.get('portrait_path'),
+
                             full_body_path=item.get('full_body_path'),
                             original_name=item.get('original_name'),
                             generation_prompt=item.get('generation_prompt')
@@ -160,7 +160,7 @@ class AssetManager:
                             name=item.get('name', item.get('original_name', 'Unknown')),
                             description=item['description'],
                             reference_image_path=item.get('reference_image_path'),
-                            portrait_path=item.get('portrait_path'),
+
                             full_body_path=item.get('full_body_path'),
                             original_name=item.get('original_name'),
                             generation_prompt=item.get('generation_prompt')
@@ -217,7 +217,7 @@ class AssetManager:
                 "name": char.name,
                 "description": char.description,
                 "reference_image_path": char.reference_image_path,
-                "portrait_path": char.portrait_path,
+
                 "full_body_path": char.full_body_path,
                 "generation_prompt": char.generation_prompt
             })
@@ -253,7 +253,7 @@ class AssetManager:
                 logger.info(f"Character {char.name} found in catalog. Using existing assets.")
                 existing_char = self.characters[char.name]
                 char.id = existing_char.id
-                char.portrait_path = existing_char.portrait_path
+
                 char.full_body_path = existing_char.full_body_path
                 char.reference_image_path = existing_char.reference_image_path or existing_char.full_body_path
                 continue
@@ -378,6 +378,15 @@ class AssetManager:
         for key, char in self.characters.items():
             if name in key or key in name:
                 return char
+        return None
+
+    def get_location_data(self, name: str) -> Optional[Location]:
+        if name in self.locations:
+            return self.locations[name]
+        
+        for key, loc in self.locations.items():
+            if name in key or key in name:
+                return loc
         return None
 
     def get_character_ref(self, name: str) -> str:
