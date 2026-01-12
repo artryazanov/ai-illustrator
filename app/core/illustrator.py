@@ -56,7 +56,8 @@ class StoryIllustrator:
                 "location": location_info,
                 "characters": characters_info,
                 "illustration_path": str(img_file.relative_to(self.output_dir.parent)),
-                "folder": scene_folder_name
+                "folder": scene_folder_name,
+                "generation_prompt": None
             }
             
             # Add to global registry
@@ -66,7 +67,9 @@ class StoryIllustrator:
                 logger.info(f"Illustration for scene {scene.id} exists. Skipping generation.")
                 continue
 
-            self._generate_scene_image(scene, style_prompt, img_file)
+            prompt = self._generate_scene_image(scene, style_prompt, img_file)
+            if prompt:
+                scene_metadata["generation_prompt"] = prompt
 
         # Save global manifest after processing all scenes
         self._save_data_json(style_prompt)
@@ -87,7 +90,9 @@ class StoryIllustrator:
                 "description": char.description,
                 "reference_image_path": char.reference_image_path,
                 "portrait_path": char.portrait_path,
-                "full_body_path": char.full_body_path
+                "portrait_path": char.portrait_path,
+                "full_body_path": char.full_body_path,
+                "generation_prompt": char.generation_prompt
             })
 
         # Collect location data for export
@@ -97,7 +102,8 @@ class StoryIllustrator:
                 "original_name": loc.original_name or name,
                 "name": loc.name,
                 "description": loc.description,
-                "reference_image_path": loc.reference_image_path
+                "reference_image_path": loc.reference_image_path,
+                "generation_prompt": loc.generation_prompt
             })
 
         data = {
@@ -111,7 +117,7 @@ class StoryIllustrator:
             json.dump(data, f, ensure_ascii=False, indent=4)
         logger.info(f"Global manifest saved to {manifest_path}")
 
-    def _generate_scene_image(self, scene: Scene, style_prompt: str, output_path: Path):
+    def _generate_scene_image(self, scene: Scene, style_prompt: str, output_path: Path) -> Optional[str]:
         reference_images = []
         
         if scene.characters_present:
@@ -151,8 +157,10 @@ class StoryIllustrator:
                 output_path=str(output_path),
                 aspect_ratio="16:9"
             )
+            return prompt
         except Exception as e:
             logger.error(f"Failed to illustrate scene {scene.id}: {e}")
+            return None
 
     def _select_character_ref(self, char_name: str, scene: Scene) -> Optional[str]:
         """Selects character reference (always full body now)."""

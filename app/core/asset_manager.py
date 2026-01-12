@@ -120,7 +120,8 @@ class AssetManager:
                             reference_image_path=item.get('reference_image_path'),
                             portrait_path=item.get('portrait_path'),
                             full_body_path=item.get('full_body_path'),
-                            original_name=item.get('original_name')
+                            original_name=item.get('original_name'),
+                            generation_prompt=item.get('generation_prompt')
                         )
                         self.characters[char.name] = char
                         
@@ -130,7 +131,8 @@ class AssetManager:
                             name=item.get('name', item.get('original_name', 'Unknown')),
                             description=item['description'],
                             reference_image_path=item.get('reference_image_path'),
-                            original_name=item.get('original_name')
+                            original_name=item.get('original_name'),
+                            generation_prompt=item.get('generation_prompt')
                         )
                         self.locations[loc.name] = loc
                         
@@ -158,7 +160,8 @@ class AssetManager:
                             reference_image_path=item.get('reference_image_path'),
                             portrait_path=item.get('portrait_path'),
                             full_body_path=item.get('full_body_path'),
-                            original_name=item.get('original_name')
+                            original_name=item.get('original_name'),
+                            generation_prompt=item.get('generation_prompt')
                         )
                         self.characters[char.name] = char
                 migrated = True
@@ -177,7 +180,8 @@ class AssetManager:
                             name=item.get('name', item.get('original_name', 'Unknown')),
                             description=item['description'],
                             reference_image_path=item.get('reference_image_path'),
-                            original_name=item.get('original_name')
+                            original_name=item.get('original_name'),
+                            generation_prompt=item.get('generation_prompt')
                         )
                         self.locations[loc.name] = loc
                 migrated = True
@@ -211,7 +215,8 @@ class AssetManager:
                 "description": char.description,
                 "reference_image_path": char.reference_image_path,
                 "portrait_path": char.portrait_path,
-                "full_body_path": char.full_body_path
+                "full_body_path": char.full_body_path,
+                "generation_prompt": char.generation_prompt
             })
         current_data['characters'] = char_list
         
@@ -222,7 +227,9 @@ class AssetManager:
                 "original_name": loc.original_name or name,
                 "name": loc.name,
                 "description": loc.description,
-                "reference_image_path": loc.reference_image_path
+                "description": loc.description,
+                "reference_image_path": loc.reference_image_path,
+                "generation_prompt": loc.generation_prompt
             })
         current_data['locations'] = loc_list
         
@@ -292,6 +299,7 @@ class AssetManager:
                 aspect_ratio="9:16"
             )
             char.full_body_path = str(output_file)
+            char.generation_prompt = prompt
         except Exception as e:
             logger.error(f"Failed to generate full body for {char.name}: {e}")
 
@@ -331,6 +339,7 @@ class AssetManager:
                     aspect_ratio="16:9"
                 )
                 loc.reference_image_path = str(img_file)
+                loc.generation_prompt = prompt
                 if not loc.original_name:
                     loc.original_name = loc.name
                 
