@@ -47,8 +47,8 @@ cp .env.example .env
 Open `.env` and set your variables:
 ```ini
 GEMINI_API_KEY=your_api_key_here
-TEXT_MODEL_NAME=gemini-2.0-flash-exp # or compatible
-IMAGE_MODEL_NAME=gemini-2.0-flash-exp # or specific imagen model
+TEXT_MODEL_NAME=gemini-3-pro-preview # or compatible
+IMAGE_MODEL_NAME=gemini-3-pro-image-preview # or specific imagen model
 ```
 
 ### 3. Running with Docker (Recommended)
