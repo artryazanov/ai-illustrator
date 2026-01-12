@@ -2,8 +2,8 @@
 import pytest
 from unittest.mock import MagicMock
 import json
-from illustration_gen.core.analyzer import StoryAnalyzer
-from illustration_gen.core.models import Scene, Character, Location
+from app.core.analyzer import StoryAnalyzer
+from app.core.models import Scene, Character, Location
 
 @pytest.fixture
 def analyzer(mock_genai_client):

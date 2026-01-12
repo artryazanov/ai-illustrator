@@ -4,9 +4,9 @@ import logging
 from pathlib import Path
 from typing import List, Dict, Optional
 
-from illustration_gen.config import Config
-from illustration_gen.core.ai_client import GenAIClient
-from illustration_gen.core.models import Character, Location
+from app.config import Config
+from app.core.ai_client import GenAIClient
+from app.core.models import Character, Location
 
 logger = logging.getLogger(__name__)
 

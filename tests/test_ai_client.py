@@ -1,7 +1,7 @@
 
 import pytest
 from unittest.mock import MagicMock, patch
-from illustration_gen.core.ai_client import GenAIClient
+from app.core.ai_client import GenAIClient
 from PIL import Image
 
 @pytest.fixture

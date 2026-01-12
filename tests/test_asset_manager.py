@@ -2,12 +2,12 @@
 import pytest
 from unittest.mock import MagicMock, patch, mock_open
 from pathlib import Path
-from illustration_gen.core.asset_manager import AssetManager
-from illustration_gen.core.models import Character, Location
+from app.core.asset_manager import AssetManager
+from app.core.models import Character, Location
 
 @pytest.fixture
 def mock_wrapper_client():
-    from illustration_gen.core.ai_client import GenAIClient
+    from app.core.ai_client import GenAIClient
     client = MagicMock(spec=GenAIClient)
     return client
 

@@ -2,8 +2,8 @@
 import pytest
 from unittest.mock import MagicMock, call, patch, mock_open
 from pathlib import Path
-from illustration_gen.core.illustrator import StoryIllustrator
-from illustration_gen.core.models import Scene, Character, Location
+from app.core.illustrator import StoryIllustrator
+from app.core.models import Scene, Character, Location
 
 class TestStoryIllustrator:
     @pytest.fixture

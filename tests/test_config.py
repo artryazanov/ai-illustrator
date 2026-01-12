@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 import os
 from pathlib import Path
-import illustration_gen.config as config_module
+import app.config as config_module
 
 class TestConfig:
     def test_validate_success(self, monkeypatch):

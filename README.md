@@ -136,7 +136,7 @@ The tests use `unittest.mock` and `pytest-mock` to simulate Google GenAI API res
 
 ## Project Structure
 -   `main.py`: Entry point and orchestration logic.
--   `illustration_gen/`: Core package.
+-   `app/`: Core package.
     -   `config.py`: Configuration and environment management.
     -   `core/`: Key logic modules.
         -   `ai_client.py`: Wrapper for Google GenAI SDK.

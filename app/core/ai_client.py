@@ -3,7 +3,7 @@ from google.genai import types
 import logging
 from typing import List, Optional, Any, Dict
 from PIL import Image
-from illustration_gen.config import Config
+from app.config import Config
 import json
 import os
 

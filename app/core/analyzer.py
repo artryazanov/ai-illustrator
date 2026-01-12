@@ -2,8 +2,8 @@ import json
 import logging
 from typing import List
 
-from illustration_gen.core.ai_client import GenAIClient
-from illustration_gen.core.models import Scene, Character, Location
+from app.core.ai_client import GenAIClient
+from app.core.models import Scene, Character, Location
 
 logger = logging.getLogger(__name__)
 

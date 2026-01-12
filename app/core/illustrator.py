@@ -4,9 +4,9 @@ import os
 from pathlib import Path
 from typing import List, Optional
 
-from illustration_gen.core.ai_client import GenAIClient
-from illustration_gen.core.asset_manager import AssetManager
-from illustration_gen.core.models import Scene
+from app.core.ai_client import GenAIClient
+from app.core.asset_manager import AssetManager
+from app.core.models import Scene
 
 logger = logging.getLogger(__name__)
 

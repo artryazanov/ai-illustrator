@@ -3,11 +3,11 @@ import logging
 from pathlib import Path
 from dotenv import load_dotenv
 
-from illustration_gen.config import Config, setup_directories
-from illustration_gen.core.ai_client import GenAIClient
-from illustration_gen.core.analyzer import StoryAnalyzer
-from illustration_gen.core.asset_manager import AssetManager
-from illustration_gen.core.illustrator import StoryIllustrator
+from app.config import Config, setup_directories
+from app.core.ai_client import GenAIClient
+from app.core.analyzer import StoryAnalyzer
+from app.core.asset_manager import AssetManager
+from app.core.illustrator import StoryIllustrator
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

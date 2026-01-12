@@ -1,6 +1,6 @@
 
 import pytest
-from illustration_gen.core.models import Character, Location, Scene
+from app.core.models import Character, Location, Scene
 
 class TestModels:
     def test_character_creation(self):
