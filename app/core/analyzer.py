@@ -142,9 +142,18 @@ class StoryAnalyzer:
         """
         prompt = f"""
         Analyze the text and identify key characters.
-        Create a Visual Portrait for each.
-        Focus on: Hair color/style, Eye color, Clothing, Body type, Age, Distinctive features (scars, glasses).
-        Ignore abstract personality traits. Focus ONLY on visual traits.
+        Create a **HIGHLY DETAILED** Visual Portrait for each.
+        
+        You must provide a comprehensive physical description including:
+        - **Face**: Eye color/shape, nose, mouth, jawline, skin texture/tone, facial hair, makeup.
+        - **Hair**: Exact color, style, length, texture.
+        - **Physique**: Body type, height, posture, build.
+        - **Outfit**: Detailed clothing breakdown (top, bottom, shoes, accessories), colors, materials, style (e.g., worn leather, silk robes).
+        - **Distinctive Features**: Scars, tattoos, jewelry, glasses, weapons, props.
+        
+        The description must be vivid and specific enough for an artist to paint an exact replica without guessing. 
+        Avoid abstract personality traits (e.g., "kind", "brave") unless they manifest visually (e.g., "kind eyes", "confident stance").
+        Focus ONLY on visual traits.
         """
 
         try:
