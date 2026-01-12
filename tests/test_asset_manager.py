@@ -96,7 +96,7 @@ class TestAssetManager:
         
         assert "OldHero" in mgr.characters
         assert "OldTown" in mgr.locations
-        assert (output_dir.parent / "data.json").exists()
+        assert (output_dir / "data.json").exists()
         
 
     def test_generate_character_assets_existing(self, asset_manager):

@@ -369,10 +369,11 @@ class AssetManager:
             img_file = self.loc_dir / filename
             
             # 16:9 Prompt
-            digital_fix = "direct digital render, high-quality digital art, clean edges, no paper texture, no camera grain."
+            digital_fix = "direct digital render, high-quality digital art, clean edges, no paper texture, no camera grain, no desk, no glare."
             prompt = (
-                f"Digital landscape art of {loc.name}, {loc.description}. {style_prompt}. "
-                f"16:9 aspect ratio, cinematic wide shot. "
+                f"Digital landscape art of {loc.name}, {loc.description}. "
+                f"The visual style, lighting, and brushwork MUST be an exact match to the provided Environment Style Template. "
+                f"{style_prompt}. 16:9 aspect ratio, cinematic wide shot. "
                 f"Single view, no text, no labels, no split screen, no frames. "
                 f"No people, no characters, no figures, no humans, no living beings. Empty scene, architecture and nature only. "
                 f"High quality environment design. {digital_fix}"
@@ -384,7 +385,7 @@ class AssetManager:
                     reference_images=[{
                         "path": str(self.loc_templates["bg_landscape"]),
                         "purpose": "Environment Style Template",
-                        "usage": "Use as stylistic foundation."
+                        "usage": "This image is the absolute source of truth for visual style, color palette, and artistic technique. The new image MUST be an identical stylistic match to this reference."
                     }],
                     output_path=str(img_file),
                     aspect_ratio="16:9"
