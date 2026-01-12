@@ -2,7 +2,7 @@ import os
 import json
 import logging
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from illustration_gen.config import Config
 from illustration_gen.core.ai_client import GenAIClient
@@ -32,8 +32,16 @@ class AssetManager:
         self.characters: Dict[str, Character] = {}
         self.locations: Dict[str, Location] = {}
         
+        self.loc_catalog_path = self.loc_dir / "locations.json"
+        
+        self.loc_templates = {
+            "bg_landscape": self.template_dir / "bg_location_16_9.jpg",
+            "ref_landscape": self.template_dir / "style_ref_location_16_9.jpg"
+        }
+        
         self.catalog_path = self.char_dir / "characters.json"
         self._load_catalog()
+        self._load_location_catalog()
 
     def prepare_style_templates(self, detected_style: str):
         """Creates base backgrounds and style templates once per run."""
@@ -64,6 +72,33 @@ class AssetManager:
                 f"{style_ref_prompt}. Full body shot, standing.",
                 reference_image_paths=[str(self.templates["bg_f"])], # Use our bg
                 output_path=str(self.templates["ref_f"])
+            )
+
+    def prepare_location_templates(self, detected_style: str):
+        """Creates base backgrounds and style templates for locations (16:9)."""
+        logger.info("Preparing location style templates (16:9)...")
+        
+        # 1. Neutral background (16:9)
+        bg_prompt = (
+            f"{detected_style}. 16:9 aspect ratio, horizontal orientation. "
+            f"Neutral artistic background, empty environment, no buildings, no people, "
+            f"no text, no borders. Cinematic wide shot."
+        )
+        
+        if not self.loc_templates["bg_landscape"].exists():
+            self.ai_client.generate_image(bg_prompt, output_path=str(self.loc_templates["bg_landscape"]))
+
+        # 2. Style reference for locations
+        style_ref_prompt = (
+            f"A landscape concept art template. {detected_style}. 16:9 aspect ratio. "
+            f"Shows architectural and nature drawing style. No text, no UI, no people."
+        )
+        
+        if not self.loc_templates["ref_landscape"].exists():
+            self.ai_client.generate_image(
+                style_ref_prompt,
+                reference_image_paths=[str(self.loc_templates["bg_landscape"])],
+                output_path=str(self.loc_templates["ref_landscape"])
             )
 
     def _load_catalog(self):
@@ -178,35 +213,82 @@ class AssetManager:
         except Exception as e:
             logger.error(f"Failed to generate {suffix} for {char.name}: {e}")
 
+    def _load_location_catalog(self):
+        """Loads location catalog from JSON."""
+        if self.loc_catalog_path.exists():
+            try:
+                with open(self.loc_catalog_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    for item in data:
+                        loc = Location(
+                            name=item.get('name', item['original_name']),
+                            description=item['description'],
+                            reference_image_path=item.get('reference_image_path'),
+                            original_name=item.get('original_name')
+                        )
+                        self.locations[loc.name] = loc
+                logger.info(f"Loaded {len(self.locations)} locations from catalog.")
+            except Exception as e:
+                logger.error(f"Error loading location catalog: {e}")
+
+    def _save_location_catalog(self):
+        """Saves current location catalog to JSON."""
+        catalog_data = []
+        for name, loc in self.locations.items():
+            catalog_data.append({
+                "original_name": loc.original_name or name,
+                "name": loc.name,
+                "description": loc.description,
+                "reference_image_path": loc.reference_image_path
+            })
+        
+        try:
+            with open(self.loc_catalog_path, "w", encoding="utf-8") as f:
+                json.dump(catalog_data, f, ensure_ascii=False, indent=4)
+        except Exception as e:
+            logger.error(f"Error saving location catalog: {e}")
+
     def generate_location_assets(self, locations: List[Location], style_prompt: str):
         for loc in locations:
-            safe_name = "".join(x for x in loc.name if x.isalnum() or x in (' ', '_', '-')).strip().replace(' ', '_')
-            loc_path = self.loc_dir / safe_name
-            loc_path.mkdir(parents=True, exist_ok=True)
-
-            desc_file = loc_path / "description.txt"
-            img_file = loc_path / "ref_01.jpg"
-
-            if img_file.exists():
-                logger.info(f"Asset for location {loc.name} already exists. Skipping.")
-                loc.reference_image_path = str(img_file)
-                self.locations[loc.name] = loc
+            # Check catalog first
+            if loc.name in self.locations:
                 continue
 
-            with open(desc_file, "w") as f:
-                f.write(loc.description)
+            # Translate name for folder
+            english_name = self.ai_client.translate_to_english(loc.name)
+            safe_name = "".join(x for x in english_name if x.isalnum() or x in (' ', '_', '-')).strip().replace(' ', '_')
+            
+            loc_path = self.loc_dir / safe_name
+            loc_path.mkdir(parents=True, exist_ok=True)
+            
+            img_file = loc_path / "ref_01.jpg"
+            
+            # 16:9 Prompt
+            prompt = (
+                f"Concept art of {loc.name}, {loc.description}. {style_prompt}. "
+                f"16:9 aspect ratio, cinematic wide shot. "
+                f"Single view, no text, no labels, no split screen, no frames. "
+                f"High quality environment design."
+            )
 
-            # Prompt Pattern: "Concept art of {location_name}, {location_description}. {system_style_prompt}. Wide angle, establishing shot."
-            prompt = f"Concept art of {loc.name}, {loc.description}. {style_prompt}. Wide angle, establishing shot."
-
-            logger.info(f"Generating reference for location: {loc.name}")
             try:
-                self.ai_client.generate_image(prompt=prompt, output_path=str(img_file))
+                self.ai_client.generate_image(
+                    prompt=prompt,
+                    reference_image_paths=[
+                        str(self.loc_templates["bg_landscape"]), 
+                        str(self.loc_templates["ref_landscape"])
+                    ],
+                    output_path=str(img_file)
+                )
                 loc.reference_image_path = str(img_file)
+                if not loc.original_name:
+                    loc.original_name = loc.name
+                
+                self.locations[loc.name] = loc
+                self._save_location_catalog()
+                
             except Exception as e:
-                logger.error(f"Failed to generate asset for {loc.name}: {e}")
-
-            self.locations[loc.name] = loc
+                logger.error(f"Failed to generate location {loc.name}: {e}")
 
     def get_character_data(self, name: str) -> Optional[Character]:
         if name in self.characters:

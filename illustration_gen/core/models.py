@@ -13,6 +13,7 @@ class Location(BaseModel):
     name: str = Field(description="Name of the location")
     description: str = Field(description="Detailed visual description of the environment")
     reference_image_path: Optional[str] = Field(default=None, description="Path to the generated reference image")
+    original_name: Optional[str] = Field(default=None, description="Original name from the text")
 
 class Scene(BaseModel):
     id: int = Field(..., description="Sequence number of the scene (unique id)")
