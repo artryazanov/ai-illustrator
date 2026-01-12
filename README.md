@@ -1,39 +1,146 @@
 # AI Illustrator
 
-A tool to generate illustrations for stories using Gemini and Imagen.
+AI Illustrator is a powerful tool designed to automatically generate consistent, high-quality illustrations for stories using Google's Gemini (for text analysis and logic) and Imagen (for image generation) models. It processes a story text file, analyzes it to understand the visual style, characters, and locations, and then generates a sequence of cinematic illustrations.
 
-## Docker Setup
+## Features
 
-### Prerequisites
-- Docker
-- Docker Compose
+-   **Automatic Style Detection**: Analyzes the story text to determine the most appropriate art style and generates consistent illustrations based on that style.
+-   **Character Consistency**:
+    -   Extracts character descriptions and generates reference "character sheets" (Portrait and Full Body).
+    -   Maintains a persistent catalog of characters (`output/characters/characters.json`) to ensure the same character looks consistent throughout the story.
+    -   Uses reference images (multimodal generation) to keep character appearance stable across different scenes.
+-   **Location Consistency**:
+    -   Generates and caches location reference images (16:9 cinematic shots).
+    -   Maintains a location catalog (`output/locations/locations.json`) to reuse settings.
+-   **Cinematic Scene Generation**:
+    -   Splits the story into logical scenes.
+    -   Generates a single, cohesive cinematic frame for each scene (16:9 aspect ratio).
+    -   Enforces strict negative constraints to prevent comic-book layouts, text, or split screens.
+    -   Intelligently selects the best character reference (Portrait vs. Full Body) based on the scene's action.
+-   **Docker Support**: Fully containerized for easy deployment and execution.
+-   **Comprehensive Testing**: Includes a full suite of unit and integration-like tests using `pytest`.
 
-### Setup
+## Prerequisites
 
-1.  **Environment Variables**:
-    Copy `.env.example` to `.env` and fill in your API keys.
+-   **Python 3.10+** (if running locally)
+-   **Docker** & **Docker Compose** (recommended for isolation)
+-   **Google Cloud API Key** with access to Gemini 1.5/2.0+ and Imagen 3 models.
+
+## Installation & Setup
+
+### 1. Clone the Repository
+```bash
+git clone <repository-url>
+cd ai-illustrator
+```
+
+### 2. Configure Environment
+Copy the example environment file and add your API key.
+```bash
+cp .env.example .env
+```
+Open `.env` and set your variables:
+```ini
+GEMINI_API_KEY=your_api_key_here
+TEXT_MODEL_NAME=gemini-2.0-flash-exp # or compatible
+IMAGE_MODEL_NAME=gemini-2.0-flash-exp # or specific imagen model
+```
+
+### 3. Running with Docker (Recommended)
+
+Build the Docker image:
+```bash
+docker-compose build
+```
+
+Run the generator:
+1.  Place your story text file in the `data/` directory (e.g., `data/my_story.txt`).
+2.  Execute the container:
     ```bash
-    cp .env.example .env
+    docker-compose run app --text-file data/my_story.txt --output-dir output/my_project_name
     ```
+    *Note: The `output` directory will be populated with the results on your host machine.*
 
-2.  **Build the Image**:
-    ```bash
-    docker-compose build
-    ```
+### 4. Running Locally
 
-### Usage
+Create a virtual environment:
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
 
-To run the generator, you need to provide an input text file.
+Install dependencies:
+```bash
+pip install -r requirements.txt
+```
 
-1.  Place your story text file in a directory (e.g., `data/story.txt`).
-2.  Run the container:
+Run the application:
+```bash
+python main.py --text-file data/my_story.txt --output-dir output/my_project_name
+```
 
-    ```bash
-    docker-compose run app --text-file data/story.txt --output-dir output/project_name
-    ```
+## Usage
 
-    Note: The `docker-compose.yml` mounts the current directory to `/app`, so you can access files relative to the project root.
+### Command Line Arguments
+-   `--text-file`: **(Required)** Path to the input text file containing the story.
+-   `--output-dir`: Directory to save generated assets and illustrations (default: `output`).
+-   `--style-prompt`: Optional prompt to guide the initial style detection (e.g., "Cyberpunk anime", "Oil painting").
 
-### Output
+### Output Structure
+The tool creates an organized output directory:
 
-The generated illustrations and assets will be saved in the `output` directory (or wherever you specify with `--output-dir`).
+```
+output/
+├── characters/             # Character assets
+│   ├── characters.json     # Global character catalog
+│   └── Character_Name/     # Specific character folder
+│       ├── card_port.jpg   # Portrait reference
+│       ├── card_full.jpg   # Full body reference
+│       └── description.txt
+├── locations/              # Location assets
+│   ├── locations.json      # Global location catalog
+│   └── Location_Name/
+│       └── ref_01.jpg      # Location reference
+├── illustrations/          # Final Scene Illustrations
+│   ├── 001_Location_Name/
+│   │   ├── illustration.jpg
+│   │   └── scene_data.json # Metadata for the scene
+│   └── ...
+├── illustrations_sequence.json # Ordered manifest of all generated scenes
+└── style_templates/        # Generated style base images
+```
+
+## Development & Testing
+
+This project uses `pytest` for testing. The test suite covers models, configuration, asset management, and the AI client wrapper.
+
+To run tests:
+```bash
+# Activate your virtual environment first
+source venv/bin/activate
+
+# Run all tests
+pytest tests
+
+# Run with verbose output
+pytest -v tests
+```
+
+### Mocking
+The tests use `unittest.mock` and `pytest-mock` to simulate Google GenAI API responses and filesystem operations, ensuring that tests are fast and do not consume API quota.
+
+## Project Structure
+-   `main.py`: Entry point and orchestration logic.
+-   `illustration_gen/`: Core package.
+    -   `config.py`: Configuration and environment management.
+    -   `core/`: Key logic modules.
+        -   `ai_client.py`: Wrapper for Google GenAI SDK.
+        -   `analyzer.py`: Story analysis (Scene/Character/Location extraction).
+        -   `asset_manager.py`: Manages creation and cataloging of reference assets.
+        -   `illustrator.py`: Generates the final scene illustrations.
+        -   `models.py`: Pydantic data models.
+-   `tests/`: Test suite.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
