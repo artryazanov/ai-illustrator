@@ -64,7 +64,7 @@ class AssetManager:
         # 2. Generate 'style reference' characters
         style_ref_prompt = (
             f"Character design sheet, {detected_style} style. Full digital artwork. "
-            f"Single character, no text, no split screens, {digital_fix}"
+            f"Single character, no text, no frames, no split screens, {digital_fix}"
         )
         
         if not self.templates["ref_f"].exists():
@@ -255,7 +255,6 @@ class AssetManager:
             self._save_data()
 
     def _generate_single_card(self, char: Character, style_prompt: str, output_dir: Path):
-        bg_ref = self.templates["bg_f"]
         style_ref = self.templates["ref_f"]
         
         output_file = output_dir / f"card_full.jpg"
@@ -276,7 +275,7 @@ class AssetManager:
         try:
             self.ai_client.generate_image(
                 prompt=prompt,
-                reference_image_paths=[str(bg_ref), str(style_ref)],
+                reference_image_paths=[str(style_ref)],
                 output_path=str(output_file),
                 aspect_ratio="9:16"
             )
