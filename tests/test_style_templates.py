@@ -43,4 +43,5 @@ def test_prepare_style_templates_uses_bg_landscape_ref(asset_manager):
         refs = bg_f_call.kwargs.get('reference_images', [])
         assert len(refs) == 1
         assert "bg_location_16_9.jpg" in refs[0]['path']
-        assert refs[0]['purpose'] == "Style Reference"
+        assert refs[0]['purpose'] == "Style Foundation"
+        assert "absolute source of truth" in refs[0]['usage']

@@ -48,18 +48,22 @@ class AssetManager:
         
         # 1. Generate clean backgrounds (9:16)
         # Rigidly forbid text and UI
+        # 1. Generate clean backgrounds (9:16)
+        # Rigidly forbid text and UI
         bg_base_prompt = (
-            f"Pure digital illustration in {detected_style} style. 9:16 aspect ratio. "
-            f"Solid environment background, no characters, no text, no frames. {digital_fix}"
+            f"{detected_style}. 9:16 aspect ratio. "
+            f"Vertical crop of the environment, no characters, no text. "
+            f"The visual style, colors, and lighting MUST be an exact match to the reference image. "
+            f"{digital_fix}"
         )
         
         if not self.templates["bg_f"].exists():
             self.ai_client.generate_image(
-                f"{bg_base_prompt}. Wide shot environment focus.",
+                bg_base_prompt,
                 reference_images=[{
                     "path": str(self.loc_templates["bg_landscape"]),
-                    "purpose": "Style Reference",
-                    "usage": "Match the visual style and rendering technique."
+                    "purpose": "Style Foundation",
+                    "usage": "This image is the absolute source of truth for visual style, colors, and brushwork. Inherit everything from it."
                 }],
                 output_path=str(self.templates["bg_f"]),
                 aspect_ratio="9:16"
