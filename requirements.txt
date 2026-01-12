@@ -4,3 +4,4 @@ click
 pillow
 pytest
 pytest-mock
+pytest-cov

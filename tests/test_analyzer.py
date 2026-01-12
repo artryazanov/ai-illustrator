@@ -78,3 +78,33 @@ class TestStoryAnalyzer:
         analyzer.ai_client.generate_text.return_value = "Not JSON"
         scenes = analyzer.extract_scenes("text")
         assert len(scenes) == 0
+
+    def test_extract_characters_failure(self, analyzer):
+        analyzer.ai_client.generate_text.return_value = "Not JSON"
+        chars = analyzer.extract_characters("text")
+        assert len(chars) == 0
+
+    def test_extract_locations_failure(self, analyzer):
+        analyzer.ai_client.generate_text.return_value = "Not JSON"
+        locs = analyzer.extract_locations("text")
+        assert len(locs) == 0
+
+    def test_extract_style_exception(self, analyzer):
+        analyzer.ai_client.generate_text.side_effect = Exception("Err")
+        with pytest.raises(Exception, match="Err"):
+            analyzer.extract_style("t")
+
+    def test_simple_text_splitter_overlap(self, analyzer):
+        # "0123456789"
+        # chunk 5, overlap 2
+        # 1: 01234
+        # 2: 34567
+        # 3: 6789 (Wait, real logic without spaces is hard split)
+        # Real logic:
+        # Start 0, End 5. No space. Chunk "01234". Start=5.
+        # Start 5, End 10. No space. Chunk "56789". Start=10.
+        text = "0123456789"
+        chunks = analyzer.simple_text_splitter(text, chunk_size=5, overlap=2)
+        assert len(chunks) == 2
+        assert chunks[0] == "01234"
+        assert chunks[1] == "56789"

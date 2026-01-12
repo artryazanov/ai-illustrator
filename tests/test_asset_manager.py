@@ -127,3 +127,74 @@ class TestAssetManager:
             # Logic: verify it calls generate_image for the location card ONCE
             assert asset_manager.ai_client.generate_image.call_count == 1
             assert "Les" in asset_manager.locations
+    def test_load_data_error(self, asset_manager):
+        with patch("builtins.open", mock_open()) as m:
+            m.side_effect = Exception("Read Error")
+            # Should catch exception and log error, not crash
+            asset_manager._load_data()
+            
+    def test_save_data_error(self, asset_manager):
+        with patch("builtins.open", mock_open()) as m:
+            m.side_effect = Exception("Write Error")
+            # Should catch exception and log error, not crash
+            asset_manager._save_data()
+
+    def test_migrate_legacy_data_error(self, asset_manager):
+        with patch.object(Path, 'exists', side_effect=lambda: False): # data.json missing
+             with patch("pathlib.Path.exists", side_effect=lambda: True): # legacy files exist
+                 with patch("builtins.open", side_effect=Exception("Migrate Error")):
+                     asset_manager._migrate_legacy_data()
+
+    def test_generate_character_assets_new(self, asset_manager, tmp_path):
+        asset_manager.ai_client.translate_to_english.return_value = "New Guy"
+        char = Character(name="New Guy", description="Desc")
+        
+        # Mock generate_image success
+        asset_manager.ai_client.generate_image.return_value = "path/to/img.jpg"
+        
+        asset_manager.generate_character_assets([char], "style")
+        
+        assert char.id is not None
+        assert "New Guy" in asset_manager.characters
+        asset_manager.ai_client.generate_image.assert_called_once()
+
+    def test_generate_character_assets_failure(self, asset_manager):
+        asset_manager.ai_client.translate_to_english.return_value = "Fail Guy"
+        char = Character(name="Fail Guy", description="Desc")
+        
+        asset_manager.ai_client.generate_image.side_effect = Exception("Gen Fail")
+        
+        asset_manager.generate_character_assets([char], "style")
+        
+        # Should not crash, just log error
+        assert char.full_body_path is None
+
+    def test_get_character_data_partial(self, asset_manager):
+        asset_manager.characters = {"Alice In Wonderland": Character(name="Alice In Wonderland", description="")}
+        
+        char = asset_manager.get_character_data("Alice")
+        assert char is not None
+        assert char.name == "Alice In Wonderland"
+        
+        char = asset_manager.get_character_data("Wonderland")
+        assert char is not None
+        
+        char = asset_manager.get_character_data("Bob")
+        assert char is None
+
+    def test_generate_location_assets_skip_existing(self, asset_manager):
+        loc = Location(name="Existing", description="D", original_name="Existing")
+        asset_manager.locations["Existing"] = loc
+        
+        asset_manager.generate_location_assets([loc], "style")
+        asset_manager.ai_client.generate_image.assert_not_called()
+
+    def test_generate_location_assets_failure(self, asset_manager):
+        asset_manager.ai_client.translate_to_english.return_value = "Fail Loc"
+        loc = Location(name="Fail Loc", description="D")
+        
+        asset_manager.ai_client.generate_image.side_effect = Exception("Loc Fail")
+        
+        asset_manager.generate_location_assets([loc], "style")
+        # Should catch exception
+        assert loc.reference_image_path is None

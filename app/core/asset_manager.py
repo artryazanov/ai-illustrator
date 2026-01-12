@@ -273,23 +273,22 @@ class AssetManager:
 
             # 3. Generate Cards
             # Generate Full Body directly to final path
-            self._generate_single_card(char, style_prompt, output_file)
-            
-            # Set legacy reference path to full body as default
-            char.full_body_path = str(output_file)
-            char.reference_image_path = char.full_body_path
-            char.original_name = char.name
+            if self._generate_single_card(char, style_prompt, output_file):
+                # Set legacy reference path to full body as default
+                char.full_body_path = str(output_file)
+                char.reference_image_path = char.full_body_path
+                char.original_name = char.name
             
             # 4. Update Data
             self.characters[char.name] = char
             self._save_data()
 
-    def _generate_single_card(self, char: Character, style_prompt: str, output_file: Path):
+    def _generate_single_card(self, char: Character, style_prompt: str, output_file: Path) -> bool:
         style_ref = self.templates["ref_f"]
         
         if output_file.exists():
             char.full_body_path = str(output_file)
-            return
+            return True
 
         digital_fix = "direct digital render, high-quality digital art, clean edges, no paper texture, no camera grain."
         view_type = "full body shot"
@@ -313,8 +312,10 @@ class AssetManager:
             )
             char.full_body_path = str(output_file)
             char.generation_prompt = prompt
+            return True
         except Exception as e:
             logger.error(f"Failed to generate full body for {char.name}: {e}")
+            return False
 
     def generate_location_assets(self, locations: List[Location], style_prompt: str):
         # Determine next ID

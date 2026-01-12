@@ -34,6 +34,7 @@ class TestStoryIllustrator:
 
         # Mock AI slug generation
         illustrator.ai_client.generate_filename_slug.return_value = "sunny_day"
+        illustrator.ai_client.analyze_scene_for_highlight.return_value = {"image_prompt": "highlight prompt", "active_characters": ["Alice"]}
         
         # Test execute
         with patch("builtins.open", mock_open()) as mocked_file:
