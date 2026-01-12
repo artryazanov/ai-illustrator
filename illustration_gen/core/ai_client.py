@@ -40,6 +40,15 @@ class GenAIClient:
             logger.error(f"Error generating text: {e}")
             raise
 
+    def translate_to_english(self, text: str) -> str:
+        """Translates text to English for folder naming."""
+        try:
+            prompt = f"Translate the following name or phrase to English, providing only the translation, no extra text or punctuation: {text}"
+            return self.generate_text(prompt).strip().replace(" ", "_")
+        except Exception as e:
+            logger.warning(f"Translation failed for '{text}': {e}. Using original name.")
+            return text
+
     def generate_image(self, prompt: str, reference_image_paths: Optional[List[str]] = None, output_path: str = None) -> str:
         """
         Generates an image using the configured model. 
