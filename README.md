@@ -5,7 +5,7 @@
 ![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11-blue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-AI Illustrator is a powerful tool designed to automatically generate consistent, high-quality illustrations for stories using Google's Gemini (for text analysis and logic) and Imagen (for image generation) models. It processes a story text file, analyzes it to understand the visual style, characters, and locations, and then generates a sequence of cinematic illustrations.
+AI Illustrator is a powerful tool designed to automatically generate consistent, high-quality illustrations for stories using Google's Gemini models for both text analysis and image generation. It processes a story text file, analyzes it to understand the visual style, characters, and locations, and then generates a sequence of cinematic illustrations.
 
 ## Features
 
@@ -29,7 +29,7 @@ AI Illustrator is a powerful tool designed to automatically generate consistent,
 
 -   **Python 3.10+** (if running locally)
 -   **Docker** & **Docker Compose** (recommended for isolation)
--   **Google Cloud API Key** with access to Gemini 1.5/2.0+ and Imagen 3 models.
+-   **Google Cloud API Key** with access to Gemini models (including image generation capabilities).
 
 ## Installation & Setup
 
