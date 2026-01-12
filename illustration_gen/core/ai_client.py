@@ -49,7 +49,7 @@ class GenAIClient:
             logger.warning(f"Translation failed for '{text}': {e}. Using original name.")
             return text
 
-    def generate_image(self, prompt: str, reference_image_paths: Optional[List[str]] = None, output_path: str = None) -> str:
+    def generate_image(self, prompt: str, reference_image_paths: Optional[List[str]] = None, output_path: str = None, aspect_ratio: str = "16:9") -> str:
         """
         Generates an image using the configured model. 
         Uses generate_content for multimodal inputs (Subject References) if provided.
@@ -76,11 +76,13 @@ class GenAIClient:
 
             # Config for image generation
             # We must specify response_modalities=['IMAGE'] for image output (or TEXT, IMAGE)
+            # Adding aspect_ratio to config
             response = self.client.models.generate_content(
                 model=self.image_model_name,
                 contents=contents,
                 config=types.GenerateContentConfig(
-                    response_modalities=['IMAGE'], 
+                    response_modalities=['IMAGE'],
+                    aspect_ratio=aspect_ratio,
                 )
             )
             

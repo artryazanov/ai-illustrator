@@ -32,64 +32,51 @@ class StoryIllustrator:
                 logger.info(f"Illustration for scene {scene.id} exists. Skipping.")
                 continue
 
-            # Gather references
-            # Strategy: Focus on Protagonist.
-            # We pick the FIRST character in characters_present as the protagonist for this scene
-            # (Assuming analyzer orders them by importance or presence).
-            
             ref_images = []
-            main_char_name = None
             
+            # Logic to choose best reference (Portrait vs Full Body)
             if scene.characters_present:
                 main_char_name = scene.characters_present[0]
-                ref_path = self._get_best_ref(main_char_name, scene)
+                # Use method that selects needed card type depending on scene
+                ref_path = self._select_character_ref(main_char_name, scene)
                 if ref_path:
                     ref_images.append(ref_path)
-                    logger.info(f"Scene {scene.id}: Using reference for main character '{main_char_name}'")
 
+            # Add location reference (16:9)
+            loc_ref = self.asset_manager.get_location_ref(scene.location_name)
+            if loc_ref:
+                ref_images.append(loc_ref)
 
+            # Enhanced prompt to prevent comic layout
+            prompt = (
+                f"{style_prompt}. **Single cinematic frame. One single cohesive image.**\n"
+                f"**STRICTLY NO multi-panels, NO comic book layout, NO grid, NO split screen, NO storyboard, NO frames.**\n"
+                f"**NO text, NO captions, NO speech bubbles.**\n"
+                f"Scene context: {scene.visual_description}\n"
+                f"Action taking place: {scene.action_description}\n"
+                f"Setting: {scene.location_name}, {scene.time_of_day}. Mood: {scene.mood}."
+            )
 
-            # We can also add location ref if available, but "Focus on Protagonist" suggests prioritizing people.
-            # However, `ai_client` handles list of refs. If we want to risk it, we add loc.
-            # User warning: "Attempts to insert 5 characters... leads to quality drop".
-            # 1 Char + 1 Loc might be okay? Let's try just Char for now to be safe, or both if reliable.
-            # Let's stick to Char as primary subject per user hint.
-            
-            # Construct Prompt
-            prompt = f"""
-            {style_prompt}
-            Transformation of: {scene.visual_description}
-            Action: {scene.action_description}
-            Mood: {scene.mood}
-            Time: {scene.time_of_day}
-            Location: {scene.location_name}
-            """
-            
-            if main_char_name:
-                prompt += f"\nMain Character: {main_char_name} (Reference provided)."
-            
-            other_chars = [c for c in scene.characters_present if c != main_char_name]
-            if other_chars:
-                prompt += f"\nOther characters present: {', '.join(other_chars)}."
-
-            logger.info(f"Generating illustration for Scene {scene.id}...")
+            logger.info(f"Generating illustration for Scene {scene.id} (Single Frame)...")
             try:
                 self.ai_client.generate_image(
                     prompt=prompt,
                     reference_image_paths=ref_images,
-                    output_path=str(img_file)
+                    output_path=str(img_file),
+                    aspect_ratio="16:9"
                 )
             except Exception as e:
                 logger.error(f"Failed to illustrate scene {scene.id}: {e}")
 
-    def _get_best_ref(self, char_name: str, scene: Scene) -> Optional[str]:
+    def _select_character_ref(self, char_name: str, scene: Scene) -> Optional[str]:
+        """Selects between portrait and full body based on scene description."""
         char_data = self.asset_manager.get_character_data(char_name)
-        if not char_data: return None
+        if not char_data:
+            return None
+            
+        portrait_keywords = ['face', 'eyes', 'smile', 'expression', 'close-up', 'лицо', 'эмоция', 'крупный план']
+        scene_desc = (scene.visual_description + " " + scene.action_description).lower()
         
-        # Heuristics for shot type
-        portrait_keywords = ['face', 'eyes', 'smile', 'crying', 'portrait', 'close-up', 'лицо', 'глаза', 'emotion', 'expression']
-        desc_lower = (scene.visual_description + " " + scene.action_description).lower()
-        
-        if any(word in desc_lower for word in portrait_keywords):
+        if any(word in scene_desc for word in portrait_keywords):
             return char_data.portrait_path or char_data.full_body_path
         return char_data.full_body_path or char_data.portrait_path
