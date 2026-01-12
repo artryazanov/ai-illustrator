@@ -52,8 +52,9 @@ def main(text_file, style_prompt, output_dir):
     logger.info(f"Detected Style: {detected_style}")
 
     # Prepare global templates (Characters 9:16 and Locations 16:9)
-    asset_manager.prepare_style_templates(detected_style)
+    # Swapped order as requested: Locations first, then Style
     asset_manager.prepare_location_templates(detected_style)
+    asset_manager.prepare_style_templates(detected_style)
 
     # 4. Analyze Scenes (Splitting first to handle large texts in chunks)
     logger.info("Splitting text into scenes...")

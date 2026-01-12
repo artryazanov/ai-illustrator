@@ -31,8 +31,7 @@ class AssetManager:
         self.locations: Dict[str, Location] = {}
         
         self.loc_templates = {
-            "bg_landscape": self.template_dir / "bg_location_16_9.jpg",
-            "ref_landscape": self.template_dir / "style_ref_location_16_9.jpg"
+            "bg_landscape": self.template_dir / "bg_location_16_9.jpg"
         }
         
         self.data_path = self.output_dir.parent / "data.json"
@@ -95,19 +94,7 @@ class AssetManager:
                 aspect_ratio="16:9"
             )
 
-        # 2. Style reference for locations
-        style_ref_prompt = (
-            f"Landscape digital painting. {detected_style}. 16:9 aspect ratio. "
-            f"Shows architectural and nature drawing style. No text, no UI, no people. {digital_fix}"
-        )
-        
-        if not self.loc_templates["ref_landscape"].exists():
-            self.ai_client.generate_image(
-                style_ref_prompt,
-                reference_image_paths=[str(self.loc_templates["bg_landscape"])],
-                output_path=str(self.loc_templates["ref_landscape"]),
-                aspect_ratio="16:9"
-            )
+
 
     def _load_data(self):
         """Loads characters and locations from data.json if it exists."""
@@ -326,8 +313,7 @@ class AssetManager:
                 self.ai_client.generate_image(
                     prompt=prompt,
                     reference_image_paths=[
-                        str(self.loc_templates["bg_landscape"]), 
-                        str(self.loc_templates["ref_landscape"])
+                        str(self.loc_templates["bg_landscape"])
                     ],
                     output_path=str(img_file),
                     aspect_ratio="16:9"
