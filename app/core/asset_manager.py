@@ -56,6 +56,7 @@ class AssetManager:
         if not self.templates["bg_f"].exists():
             self.ai_client.generate_image(
                 f"{bg_base_prompt}. Wide shot environment focus.",
+                reference_image_paths=[str(self.loc_templates["bg_landscape"])],
                 output_path=str(self.templates["bg_f"]),
                 aspect_ratio="9:16"
             )
