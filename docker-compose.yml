@@ -1,0 +1,10 @@
+services:
+  app:
+    build: .
+    volumes:
+      - .:/app
+      - ./output:/app/output
+    env_file:
+      - .env
+    # Example command to run the app
+    # command: --text-file data/story.txt
