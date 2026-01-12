@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/artryazanov/ai-illustrator/actions/workflows/tests.yml/badge.svg)](https://github.com/artryazanov/ai-illustrator/actions/workflows/tests.yml)
 [![Docker Build](https://github.com/artryazanov/ai-illustrator/actions/workflows/docker.yml/badge.svg)](https://github.com/artryazanov/ai-illustrator/actions/workflows/docker.yml)
-![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11-blue)
+![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 AI Illustrator is a powerful tool designed to automatically generate consistent, high-quality illustrations for stories using Google's Gemini models for both text analysis and image generation. It processes a story text file, analyzes it to understand the visual style, characters, and locations, and then generates a sequence of cinematic illustrations.
