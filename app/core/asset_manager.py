@@ -115,6 +115,7 @@ class AssetManager:
                     # Load Characters
                     for item in data.get('characters', []):
                         char = Character(
+                            id=item.get('id'),
                             name=item.get('name', item.get('original_name', 'Unknown')),
                             description=item['description'],
                             reference_image_path=item.get('reference_image_path'),
@@ -128,6 +129,7 @@ class AssetManager:
                     # Load Locations
                     for item in data.get('locations', []):
                         loc = Location(
+                            id=item.get('id'),
                             name=item.get('name', item.get('original_name', 'Unknown')),
                             description=item['description'],
                             reference_image_path=item.get('reference_image_path'),
@@ -207,11 +209,12 @@ class AssetManager:
         # Update Characters
         char_list = []
         for name, char in self.characters.items():
-            folder_name = Path(char.reference_image_path).parent.name if char.reference_image_path else ""
+            folder_name = Path(char.reference_image_path).parent.name if char.reference_image_path else "" 
+            # folder_name kept for legacy compatibility if needed, but not used in new flow
             char_list.append({
+                "id": char.id,
                 "original_name": char.original_name or name,
                 "name": char.name,
-                "folder_name": folder_name,
                 "description": char.description,
                 "reference_image_path": char.reference_image_path,
                 "portrait_path": char.portrait_path,
@@ -224,9 +227,9 @@ class AssetManager:
         loc_list = []
         for name, loc in self.locations.items():
             loc_list.append({
+                "id": loc.id,
                 "original_name": loc.original_name or name,
                 "name": loc.name,
-                "description": loc.description,
                 "description": loc.description,
                 "reference_image_path": loc.reference_image_path,
                 "generation_prompt": loc.generation_prompt
@@ -240,28 +243,40 @@ class AssetManager:
              logger.error(f"Error saving data.json: {e}")
 
     def generate_character_assets(self, characters: List[Character], style_prompt: str):
+        # Determine next ID
+        existing_ids = [c.id for c in self.characters.values() if c.id is not None]
+        next_id = max(existing_ids) + 1 if existing_ids else 1
+
         for char in characters:
             # 1. Check catalog first
             if char.name in self.characters:
                 logger.info(f"Character {char.name} found in catalog. Using existing assets.")
                 existing_char = self.characters[char.name]
+                char.id = existing_char.id
                 char.portrait_path = existing_char.portrait_path
                 char.full_body_path = existing_char.full_body_path
                 char.reference_image_path = existing_char.reference_image_path or existing_char.full_body_path
                 continue
 
-            # 2. Translate name for folder
+            # Assign new ID
+            char.id = next_id
+            next_id += 1
+
+            # 2. Prepare filename: id_snake_case_name.jpeg
             english_name = self.ai_client.translate_to_english(char.name)
-            safe_name = "".join(x for x in english_name if x.isalnum() or x in (' ', '_', '-')).strip().replace(' ', '_')
+            safe_name = "".join(x for x in english_name if x.isalnum() or x in (' ', '_', '-')).strip().replace(' ', '_').lower()
+            filename = f"{char.id}_{safe_name}.jpeg"
             
-            char_dir = self.char_dir / safe_name
-            char_dir.mkdir(parents=True, exist_ok=True)
+            # Ensure output directory exists (no subfolders)
+            self.char_dir.mkdir(parents=True, exist_ok=True)
+            output_file = self.char_dir / filename
 
             # 3. Generate Cards
-            # Generate Full Body
-            self._generate_single_card(char, style_prompt, char_dir)
+            # Generate Full Body directly to final path
+            self._generate_single_card(char, style_prompt, output_file)
             
             # Set legacy reference path to full body as default
+            char.full_body_path = str(output_file)
             char.reference_image_path = char.full_body_path
             char.original_name = char.name
             
@@ -269,10 +284,8 @@ class AssetManager:
             self.characters[char.name] = char
             self._save_data()
 
-    def _generate_single_card(self, char: Character, style_prompt: str, output_dir: Path):
+    def _generate_single_card(self, char: Character, style_prompt: str, output_file: Path):
         style_ref = self.templates["ref_f"]
-        
-        output_file = output_dir / f"card_full.jpg"
         
         if output_file.exists():
             char.full_body_path = str(output_file)
@@ -304,19 +317,26 @@ class AssetManager:
             logger.error(f"Failed to generate full body for {char.name}: {e}")
 
     def generate_location_assets(self, locations: List[Location], style_prompt: str):
+        # Determine next ID
+        existing_ids = [l.id for l in self.locations.values() if l.id is not None]
+        next_id = max(existing_ids) + 1 if existing_ids else 1
+
         for loc in locations:
             # Check catalog first
             if loc.name in self.locations:
                 continue
 
-            # Translate name for folder
+            # Assign new ID
+            loc.id = next_id
+            next_id += 1
+
+            # Translate name for filename
             english_name = self.ai_client.translate_to_english(loc.name)
-            safe_name = "".join(x for x in english_name if x.isalnum() or x in (' ', '_', '-')).strip().replace(' ', '_')
+            safe_name = "".join(x for x in english_name if x.isalnum() or x in (' ', '_', '-')).strip().replace(' ', '_').lower()
+            filename = f"{loc.id}_{safe_name}.jpeg"
             
-            loc_path = self.loc_dir / safe_name
-            loc_path.mkdir(parents=True, exist_ok=True)
-            
-            img_file = loc_path / "ref_01.jpg"
+            self.loc_dir.mkdir(parents=True, exist_ok=True)
+            img_file = self.loc_dir / filename
             
             # 16:9 Prompt
             digital_fix = "direct digital render, high-quality digital art, clean edges, no paper texture, no camera grain."

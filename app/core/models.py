@@ -2,6 +2,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 class Character(BaseModel):
+    id: Optional[int] = Field(default=None, description="Unique identifier for the character")
     name: str = Field(description="Name of the character")
     description: str = Field(description="Detailed physical appearance description")
     generation_prompt: Optional[str] = Field(default=None, description="The prompt used to generate the image")
@@ -11,6 +12,7 @@ class Character(BaseModel):
     original_name: Optional[str] = Field(default=None, description="Original name from the text")
 
 class Location(BaseModel):
+    id: Optional[int] = Field(default=None, description="Unique identifier for the location")
     name: str = Field(description="Name of the location")
     description: str = Field(description="Detailed visual description of the environment")
     generation_prompt: Optional[str] = Field(default=None, description="The prompt used to generate the image")

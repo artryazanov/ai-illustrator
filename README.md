@@ -92,20 +92,16 @@ python main.py --text-file data/my_story.txt --output-dir output/my_project_name
 -   `--style-prompt`: Optional prompt to guide the initial style detection (e.g., "Cyberpunk anime", "Oil painting").
 
 ### Output Structure
-The tool creates an organized output directory:
+The tool creates an organized, flat output directory:
 
 ```
 output/
 ├── characters/             # Character assets
-│   └── Character_Name/     # Specific character folder
-│       └── card_full.jpg   # Full body reference
+│   └── 1_character_name.jpeg
 ├── locations/              # Location assets
-│   └── Location_Name/
-│       └── ref_01.jpg      # Location reference
+│   └── 1_location_name.jpeg
 ├── illustrations/          # Final Scene Illustrations
-│   ├── 001_Location_Name/
-│   │   └── illustration.jpg # 16:9 cinematic scene illustration
-│   └── ...
+│   └── 1_sunny_park_scene.jpeg
 ├── data.json               # Unified manifest (Style, Characters, Locations, Illustrations)
 └── style_templates/        # Generated style base images
     ├── bg_fullbody.jpg                # 9:16 solid background for characters
@@ -121,19 +117,21 @@ The `data.json` file serves as the central manifest for the project.
   "style_prompt": "Description of the visual style...",
   "characters": [
     {
+      "id": 1,
       "name": "Character Name",
       "original_name": "Original Name from Text",
       "description": "Visual description...",
-      "full_body_path": "output/characters/Name/card_full.jpg",
+      "full_body_path": "output/characters/1_character_name.jpeg",
       "generation_prompt": "Full generation prompt used..."
     }
   ],
   "locations": [
     {
+      "id": 1,
       "name": "Location Name",
       "original_name": "Original Name from Text",
       "description": "Visual description...",
-      "reference_image_path": "output/locations/Name/ref_01.jpg",
+      "reference_image_path": "output/locations/1_location_name.jpeg",
       "generation_prompt": "Full generation prompt used..."
     }
   ],
@@ -141,18 +139,20 @@ The `data.json` file serves as the central manifest for the project.
     {
       "scene_id": 1,
       "story_segment": "Original text of the scene...",
+      "name": "sunny_park_scene",
       "location": {
+        "id": 1,
         "name": "Location Name",
-        "path": "output/locations/Name/ref_01.jpg"
+        "path": "output/locations/1_location_name.jpeg"
       },
       "characters": [
         {
+          "id": 1,
           "name": "Character Name",
-          "full_body_path": "output/characters/Name/card_full.jpg"
+          "full_body_path": "output/characters/1_character_name.jpeg"
         }
       ],
-      "illustration_path": "illustrations/001_Loc/illustration.jpg",
-      "folder": "001_Location_Name",
+      "illustration_path": "output/illustrations/1_sunny_park_scene.jpeg",
       "generation_prompt": "Full generation prompt used..."
     }
   ]

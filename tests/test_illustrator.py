@@ -31,27 +31,31 @@ class TestStoryIllustrator:
         char_data = Character(name="Alice", description="Desc", portrait_path="p.jpg", full_body_path="f.jpg")
         illustrator.asset_manager.get_character_data.return_value = char_data
         illustrator.asset_manager.get_location_ref.return_value = "loc_ref.jpg"
+
+        # Mock AI slug generation
+        illustrator.ai_client.generate_filename_slug.return_value = "sunny_day"
         
         # Test execute
         with patch("builtins.open", mock_open()) as mocked_file:
              illustrator.illustrate_scenes([scene], "style")
 
-        # Verify Scene Folder Creation
-        scene_dir = illustrator.output_dir / "001_Park"
-        assert scene_dir.exists()
-        
+        # Verify Scene Folder Creation - UPDATED: No folder, direct file
+        # We can't check file existence with mock_open easily if the code didn't try to open it to WRITE 
+        # (ai_client.generate_image writes content, but that is mocked too).
+        # We check the calls.
+
         # Verify JSON writing (metadata + global data.json)
-        # We expect open calls ONLY for data.json
+        # We expect open calls for data.json
         assert mocked_file.call_count == 1
-        
-        # Verify scene data file is NOT created
-        scene_metadata_file = illustrator.output_dir / "001_Park" / "scene_data.json"
-        # Since we use mock_open, we can't test file existence directly if we didn't write to it via open()
-        # But we asserted call_count == 1, which corresponds to _save_data_json
         
         # Verify Image Generation
         illustrator.ai_client.generate_image.assert_called_once()
         args, kwargs = illustrator.ai_client.generate_image.call_args
+        
+        # Check output path matches new structure
+        expected_path = str(illustrator.output_dir / "1_sunny_day.jpeg")
+        assert kwargs['output_path'] == expected_path
+
         assert "Park" in kwargs['prompt'] # Check prompt construction
         assert len(kwargs['reference_images']) == 2
         # Check Character Ref

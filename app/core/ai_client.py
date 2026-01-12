@@ -49,6 +49,21 @@ class GenAIClient:
             logger.warning(f"Translation failed for '{text}': {e}. Using original name.")
             return text
 
+    def generate_filename_slug(self, text: str) -> str:
+        """Generates a short, snake_case filename slug from a description."""
+        try:
+            prompt = (
+                f"Create a short, concise filename slug (max 4 words, snake_case) that summarizes this scene. "
+                f"Return ONLY the slug, no extension, no other text. Input: {text}"
+            )
+            slug = self.generate_text(prompt).strip().lower()
+            # Basic sanitization
+            slug = "".join(x for x in slug if x.isalnum() or x == '_')
+            return slug
+        except Exception as e:
+            logger.warning(f"Slug generation failed: {e}. Using fallback.")
+            return "scene"
+
     def generate_image(self, prompt: str, reference_images: Optional[List[Dict[str, str]]] = None, output_path: str = None, aspect_ratio: str = "16:9") -> str:
         """
         Generates an image using the configured model. 

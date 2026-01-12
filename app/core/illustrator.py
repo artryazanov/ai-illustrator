@@ -22,41 +22,43 @@ class StoryIllustrator:
 
     def illustrate_scenes(self, scenes: List[Scene], style_prompt: str):
         for scene in scenes:
-            scene_folder_name = f"{scene.id:03d}_{scene.location_name.replace(' ', '_')}"
-            scene_dir = self.output_dir / scene_folder_name
-            scene_dir.mkdir(parents=True, exist_ok=True)
+            # 1. Generate filename slug
+            # We use visual description for a better filename slug than just location name
+            slug = self.ai_client.generate_filename_slug(scene.visual_description or scene.summary)
+            filename = f"{scene.id}_{slug}.jpeg"
+            
+            # Direct file path in illustrations folder
+            img_file = self.output_dir / filename
 
-            img_file = scene_dir / "illustration.jpg"
-
-            # 1. Collect location info
-            # Using get_location_ref but we really want the full object if possible for paths
-            # The asset_manager.locations dict should have it if generated
+            # 2. Collect location info
             loc_data = self.asset_manager.locations.get(scene.location_name)
             location_info = {
+                "id": getattr(loc_data, 'id', None),
                 "name": scene.location_name,
                 "path": loc_data.reference_image_path if loc_data else None
             }
 
-            # 2. Collect character info
+            # 3. Collect character info
             characters_info = []
             for char_name in scene.characters_present:
                 # Try to find character data using fuzzy matching helper
                 char_data = self.asset_manager.get_character_data(char_name)
                 if char_data:
                     characters_info.append({
+                        "id": getattr(char_data, 'id', None),
                         "name": char_name,
                         "portrait_path": getattr(char_data, 'portrait_path', None),
                         "full_body_path": getattr(char_data, 'full_body_path', None)
                     })
 
-            # 3. Save Scene JSON
+            # 4. Save Scene JSON Metadata
             scene_metadata = {
                 "scene_id": scene.id,
                 "story_segment": scene.original_text_segment,
+                "name": slug, # Saving the generated slug/name
                 "location": location_info,
                 "characters": characters_info,
                 "illustration_path": str(img_file.relative_to(self.output_dir.parent)),
-                "folder": scene_folder_name,
                 "generation_prompt": None
             }
             
@@ -82,14 +84,12 @@ class StoryIllustrator:
         # Collect character data for export
         char_list = []
         for name, char in self.asset_manager.characters.items():
-            folder_name = Path(char.reference_image_path).parent.name if char.reference_image_path else ""
             char_list.append({
+                "id": char.id,
                 "original_name": char.original_name or name,
                 "name": char.name,
-                "folder_name": folder_name,
                 "description": char.description,
                 "reference_image_path": char.reference_image_path,
-                "portrait_path": char.portrait_path,
                 "portrait_path": char.portrait_path,
                 "full_body_path": char.full_body_path,
                 "generation_prompt": char.generation_prompt
@@ -99,6 +99,7 @@ class StoryIllustrator:
         loc_list = []
         for name, loc in self.asset_manager.locations.items():
             loc_list.append({
+                "id": loc.id,
                 "original_name": loc.original_name or name,
                 "name": loc.name,
                 "description": loc.description,
