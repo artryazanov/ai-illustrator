@@ -22,9 +22,7 @@ class AssetManager:
         
         # Global templates
         self.templates = {
-            "bg_p": self.template_dir / "bg_portrait.jpg",
             "bg_f": self.template_dir / "bg_fullbody.jpg",
-            "ref_p": self.template_dir / "style_reference_portrait.jpg",
             "ref_f": self.template_dir / "style_reference_fullbody.jpg"
         }
 
@@ -56,17 +54,9 @@ class AssetManager:
             f"Solid environment background, no characters, no text, no frames. {digital_fix}"
         )
         
-        if not self.templates["bg_p"].exists():
-            self.ai_client.generate_image(
-                f"{bg_base_prompt}. Close-up environment focus.",
-                output_path=str(self.templates["bg_p"]),
-                aspect_ratio="9:16"
-            )
-        
         if not self.templates["bg_f"].exists():
             self.ai_client.generate_image(
                 f"{bg_base_prompt}. Wide shot environment focus.",
-                reference_image_paths=[str(self.templates["bg_p"])],
                 output_path=str(self.templates["bg_f"]),
                 aspect_ratio="9:16"
             )
@@ -77,14 +67,6 @@ class AssetManager:
             f"Single character, no text, no split screens, {digital_fix}"
         )
         
-        if not self.templates["ref_p"].exists():
-            self.ai_client.generate_image(
-                f"{style_ref_prompt}. Portrait shot, head and shoulders.",
-                reference_image_paths=[str(self.templates["bg_p"])], # Use our bg
-                output_path=str(self.templates["ref_p"]),
-                aspect_ratio="9:16"
-            )
-            
         if not self.templates["ref_f"].exists():
             self.ai_client.generate_image(
                 f"{style_ref_prompt}. Full body shot, standing.",
@@ -273,10 +255,8 @@ class AssetManager:
             char_dir.mkdir(parents=True, exist_ok=True)
 
             # 3. Generate Cards
-            # Generate Portrait
-            self._generate_single_card(char, style_prompt, char_dir, is_full_body=False)
             # Generate Full Body
-            self._generate_single_card(char, style_prompt, char_dir, is_full_body=True)
+            self._generate_single_card(char, style_prompt, char_dir)
             
             # Set legacy reference path to full body as default
             char.reference_image_path = char.full_body_path
@@ -286,29 +266,25 @@ class AssetManager:
             self.characters[char.name] = char
             self._save_data()
 
-    def _generate_single_card(self, char: Character, style_prompt: str, output_dir: Path, is_full_body: bool):
-        suffix = "full" if is_full_body else "port"
-        bg_ref = self.templates["bg_f"] if is_full_body else self.templates["bg_p"]
-        style_ref = self.templates["ref_f"] if is_full_body else self.templates["ref_p"]
+    def _generate_single_card(self, char: Character, style_prompt: str, output_dir: Path):
+        bg_ref = self.templates["bg_f"]
+        style_ref = self.templates["ref_f"]
         
-        output_file = output_dir / f"card_{suffix}.jpg"
+        output_file = output_dir / f"card_full.jpg"
         
         if output_file.exists():
-            if is_full_body:
-                char.full_body_path = str(output_file)
-            else:
-                char.portrait_path = str(output_file)
+            char.full_body_path = str(output_file)
             return
 
         digital_fix = "direct digital render, high-quality digital art, clean edges, no paper texture, no camera grain."
-        view_type = "full body shot" if is_full_body else "portrait shot, head and shoulders"
+        view_type = "full body shot"
         prompt = (
             f"{view_type} of {char.name}, {char.description}. {style_prompt}. "
             f"9:16 aspect ratio. Single character only. No text, no labels, no frames, "
             f"no UI, no infographics. Exactly one depiction of the character. {digital_fix}"
         )
 
-        logger.info(f"Generating {suffix} for {char.name}...")
+        logger.info(f"Generating full body for {char.name}...")
         try:
             self.ai_client.generate_image(
                 prompt=prompt,
@@ -316,12 +292,9 @@ class AssetManager:
                 output_path=str(output_file),
                 aspect_ratio="9:16"
             )
-            if is_full_body:
-                char.full_body_path = str(output_file)
-            else:
-                char.portrait_path = str(output_file)
+            char.full_body_path = str(output_file)
         except Exception as e:
-            logger.error(f"Failed to generate {suffix} for {char.name}: {e}")
+            logger.error(f"Failed to generate full body for {char.name}: {e}")
 
     # _load_location_catalog and _save_location_catalog removed in favor of unified _load_data/_save_data
 

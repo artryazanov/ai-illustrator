@@ -11,7 +11,7 @@ AI Illustrator is a powerful tool designed to automatically generate consistent,
 
 -   **Automatic Style Detection**: Analyzes the story text to determine the most appropriate art style and generates consistent illustrations based on that style.
 -   **Character Consistency**:
-    -   Extracts character descriptions and generates reference "character sheets" (Portrait and Full Body).
+    -   Extracts character descriptions and generates reference character images (Full Body).
     -   Maintains a persistent catalog of characters in `output/data.json` to ensure the same character looks consistent throughout the story.
     -   Uses reference images (multimodal generation) to keep character appearance stable across different scenes.
 -   **Location Consistency**:
@@ -21,7 +21,7 @@ AI Illustrator is a powerful tool designed to automatically generate consistent,
     -   Splits the story into logical scenes.
     -   Generates a single, cohesive cinematic frame for each scene (16:9 aspect ratio).
     -   Enforces strict negative constraints to prevent comic-book layouts, text, or split screens.
-    -   Intelligently selects the best character reference (Portrait vs. Full Body) based on the scene's action.
+    -   Uses full-body character references to maintain consistency across scenes.
 -   **Docker Support**: Fully containerized for easy deployment and execution.
 -   **Comprehensive Testing**: Includes a full suite of unit and integration-like tests using `pytest`.
 
@@ -98,7 +98,6 @@ The tool creates an organized output directory:
 output/
 ├── characters/             # Character assets
 │   └── Character_Name/     # Specific character folder
-│       ├── card_port.jpg   # Portrait reference
 │       └── card_full.jpg   # Full body reference
 ├── locations/              # Location assets
 │   └── Location_Name/
@@ -122,7 +121,6 @@ The `data.json` file serves as the central manifest for the project.
       "name": "Character Name",
       "original_name": "Original Name from Text",
       "description": "Visual description...",
-      "portrait_path": "output/characters/Name/card_port.jpg",
       "full_body_path": "output/characters/Name/card_full.jpg"
     }
   ],
@@ -145,7 +143,6 @@ The `data.json` file serves as the central manifest for the project.
       "characters": [
         {
           "name": "Character Name",
-          "portrait_path": "output/characters/Name/card_port.jpg",
           "full_body_path": "output/characters/Name/card_full.jpg"
         }
       ],

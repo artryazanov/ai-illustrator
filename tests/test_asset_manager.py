@@ -31,8 +31,8 @@ class TestAssetManager:
             asset_manager.prepare_style_templates("anime")
             
             # Check if generate_image was called for templates
-            # bg_p, bg_f, ref_p, ref_f = 4 calls
-            assert asset_manager.ai_client.generate_image.call_count >= 4
+            # bg_f, ref_f = 2 calls (portrait ones removed)
+            assert asset_manager.ai_client.generate_image.call_count >= 2
 
     def test_load_data(self, asset_manager):
         # Mock data.json content
@@ -112,7 +112,8 @@ class TestAssetManager:
         # Should NOT call generate image
         asset_manager.ai_client.generate_image.assert_not_called()
         # Should update the submitted char object with paths
-        assert char.portrait_path == "path/to/p.jpg"
+        # assert char.portrait_path == "path/to/p.jpg" # Removed portrait path update logic
+        assert char.full_body_path == "path/to/f.jpg"
 
     def test_generate_location_assets(self, asset_manager):
             asset_manager.ai_client.translate_to_english.return_value = "Forest"

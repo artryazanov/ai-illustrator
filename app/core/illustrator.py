@@ -148,14 +148,9 @@ class StoryIllustrator:
             logger.error(f"Failed to illustrate scene {scene.id}: {e}")
 
     def _select_character_ref(self, char_name: str, scene: Scene) -> Optional[str]:
-        """Selects between portrait and full body based on scene description."""
+        """Selects character reference (always full body now)."""
         char_data = self.asset_manager.get_character_data(char_name)
         if not char_data:
             return None
             
-        portrait_keywords = ['face', 'eyes', 'smile', 'expression', 'close-up', 'лицо', 'эмоция', 'крупный план']
-        scene_desc = (scene.visual_description + " " + scene.action_description).lower()
-        
-        if any(word in scene_desc for word in portrait_keywords):
-            return char_data.portrait_path or char_data.full_body_path
-        return char_data.full_body_path or char_data.portrait_path
+        return char_data.full_body_path or char_data.reference_image_path

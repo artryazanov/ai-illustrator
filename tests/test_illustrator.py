@@ -65,7 +65,7 @@ class TestStoryIllustrator:
         illustrator.asset_manager.get_character_data.return_value = char
         
         ref = illustrator._select_character_ref("C", scene)
-        assert ref == "p.jpg"
+        assert ref == "f.jpg"
 
     def test_select_character_ref_fullbody(self, illustrator):
         scene = Scene(
