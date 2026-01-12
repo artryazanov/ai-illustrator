@@ -29,7 +29,7 @@ To run the generator, you need to provide an input text file.
 2.  Run the container:
 
     ```bash
-    docker-compose run app --text-file data/story.txt
+    docker-compose run app --text-file data/story.txt --output-dir output/project_name
     ```
 
     Note: The `docker-compose.yml` mounts the current directory to `/app`, so you can access files relative to the project root.
