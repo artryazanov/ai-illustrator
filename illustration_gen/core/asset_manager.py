@@ -47,58 +47,85 @@ class AssetManager:
         """Creates base backgrounds and style templates once per run."""
         logger.info("Preparing global style templates...")
         
+        # Tech modifier to prevent "photo effect"
+        digital_fix = "direct digital render, high-quality digital art, clean edges, no paper texture, no camera grain, no desk, no hands, no glare."
+        
         # 1. Generate clean backgrounds (9:16)
         # Rigidly forbid text and UI
-        bg_base_prompt = f"{detected_style}. 9:16 aspect ratio, vertical orientation. Neutral background, no characters, no text, no frames, no interface elements."
+        bg_base_prompt = (
+            f"Pure digital illustration in {detected_style} style. 9:16 aspect ratio. "
+            f"Solid environment background, no characters, no text, no frames. {digital_fix}"
+        )
         
         if not self.templates["bg_p"].exists():
-            self.ai_client.generate_image(f"{bg_base_prompt}. Close-up environment focus.", output_path=str(self.templates["bg_p"]))
+            self.ai_client.generate_image(
+                f"{bg_base_prompt}. Close-up environment focus.",
+                output_path=str(self.templates["bg_p"]),
+                aspect_ratio="9:16"
+            )
         
         if not self.templates["bg_f"].exists():
-            self.ai_client.generate_image(f"{bg_base_prompt}. Wide shot environment focus.", output_path=str(self.templates["bg_f"]))
+            self.ai_client.generate_image(
+                f"{bg_base_prompt}. Wide shot environment focus.",
+                reference_image_paths=[str(self.templates["bg_p"])],
+                output_path=str(self.templates["bg_f"]),
+                aspect_ratio="9:16"
+            )
 
         # 2. Generate 'style reference' characters
-        style_ref_prompt = f"A placeholder character to establish art style. {detected_style}. Single character, no text, no split screens, 9:16 aspect ratio."
+        style_ref_prompt = (
+            f"Character design sheet, {detected_style} style. Full digital artwork. "
+            f"Single character, no text, no split screens, {digital_fix}"
+        )
         
         if not self.templates["ref_p"].exists():
             self.ai_client.generate_image(
                 f"{style_ref_prompt}. Portrait shot, head and shoulders.",
                 reference_image_paths=[str(self.templates["bg_p"])], # Use our bg
-                output_path=str(self.templates["ref_p"])
+                output_path=str(self.templates["ref_p"]),
+                aspect_ratio="9:16"
             )
             
         if not self.templates["ref_f"].exists():
             self.ai_client.generate_image(
                 f"{style_ref_prompt}. Full body shot, standing.",
                 reference_image_paths=[str(self.templates["bg_f"])], # Use our bg
-                output_path=str(self.templates["ref_f"])
+                output_path=str(self.templates["ref_f"]),
+                aspect_ratio="9:16"
             )
 
     def prepare_location_templates(self, detected_style: str):
         """Creates base backgrounds and style templates for locations (16:9)."""
         logger.info("Preparing location style templates (16:9)...")
         
+        digital_fix = "direct digital render, high-quality digital art, clean edges, no paper texture, no camera grain, no desk, no glare."
+        
         # 1. Neutral background (16:9)
         bg_prompt = (
             f"{detected_style}. 16:9 aspect ratio, horizontal orientation. "
-            f"Neutral artistic background, empty environment, no buildings, no people, "
-            f"no text, no borders. Cinematic wide shot."
+            f"Pure digital environment art, empty scenery, no buildings, no people, "
+            f"no text, no borders. Cinematic wide shot. {digital_fix}"
         )
         
         if not self.loc_templates["bg_landscape"].exists():
-            self.ai_client.generate_image(bg_prompt, output_path=str(self.loc_templates["bg_landscape"]))
+            self.ai_client.generate_image(
+                bg_prompt,
+                output_path=str(self.loc_templates["bg_landscape"]),
+                aspect_ratio="16:9"
+            )
 
         # 2. Style reference for locations
         style_ref_prompt = (
-            f"A landscape concept art template. {detected_style}. 16:9 aspect ratio. "
-            f"Shows architectural and nature drawing style. No text, no UI, no people."
+            f"Landscape digital painting. {detected_style}. 16:9 aspect ratio. "
+            f"Shows architectural and nature drawing style. No text, no UI, no people. {digital_fix}"
         )
         
         if not self.loc_templates["ref_landscape"].exists():
             self.ai_client.generate_image(
                 style_ref_prompt,
                 reference_image_paths=[str(self.loc_templates["bg_landscape"])],
-                output_path=str(self.loc_templates["ref_landscape"])
+                output_path=str(self.loc_templates["ref_landscape"]),
+                aspect_ratio="16:9"
             )
 
     def _load_catalog(self):
@@ -192,11 +219,12 @@ class AssetManager:
                 char.portrait_path = str(output_file)
             return
 
+        digital_fix = "direct digital render, high-quality digital art, clean edges, no paper texture, no camera grain."
         view_type = "full body shot" if is_full_body else "portrait shot, head and shoulders"
         prompt = (
             f"{view_type} of {char.name}, {char.description}. {style_prompt}. "
             f"9:16 aspect ratio. Single character only. No text, no labels, no frames, "
-            f"no UI, no infographics. Exactly one depiction of the character."
+            f"no UI, no infographics. Exactly one depiction of the character. {digital_fix}"
         )
 
         logger.info(f"Generating {suffix} for {char.name}...")
@@ -204,7 +232,8 @@ class AssetManager:
             self.ai_client.generate_image(
                 prompt=prompt,
                 reference_image_paths=[str(bg_ref), str(style_ref)],
-                output_path=str(output_file)
+                output_path=str(output_file),
+                aspect_ratio="9:16"
             )
             if is_full_body:
                 char.full_body_path = str(output_file)
@@ -264,11 +293,12 @@ class AssetManager:
             img_file = loc_path / "ref_01.jpg"
             
             # 16:9 Prompt
+            digital_fix = "direct digital render, high-quality digital art, clean edges, no paper texture, no camera grain."
             prompt = (
-                f"Concept art of {loc.name}, {loc.description}. {style_prompt}. "
+                f"Digital landscape art of {loc.name}, {loc.description}. {style_prompt}. "
                 f"16:9 aspect ratio, cinematic wide shot. "
                 f"Single view, no text, no labels, no split screen, no frames. "
-                f"High quality environment design."
+                f"High quality environment design. {digital_fix}"
             )
 
             try:
@@ -278,7 +308,8 @@ class AssetManager:
                         str(self.loc_templates["bg_landscape"]), 
                         str(self.loc_templates["ref_landscape"])
                     ],
-                    output_path=str(img_file)
+                    output_path=str(img_file),
+                    aspect_ratio="16:9"
                 )
                 loc.reference_image_path = str(img_file)
                 if not loc.original_name:
