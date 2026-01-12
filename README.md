@@ -108,6 +108,10 @@ output/
 │   └── ...
 ├── data.json               # Unified manifest (Style, Characters, Locations, Illustrations)
 └── style_templates/        # Generated style base images
+    ├── bg_fullbody.jpg                # 9:16 solid background for characters
+    ├── style_reference_fullbody.jpg   # 9:16 character style reference
+    ├── bg_location_16_9.jpg           # 16:9 neutral background for locations
+    └── style_ref_location_16_9.jpg    # 16:9 location style reference
 ```
 
 ### `data.json` Structure
