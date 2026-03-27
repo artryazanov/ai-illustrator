@@ -51,7 +51,7 @@ class AssetManager:
         # 1. Generate clean backgrounds (9:16)
         # Rigidly forbid text and UI
         bg_base_prompt = (
-            f"{detected_style}. 16:9 aspect ratio. "
+            f"{detected_style}. {Config.IMAGE_ASPECT_RATIO} aspect ratio. "
             f"Cinematic wide shot of the environment, no characters, no text. "
             f"The visual style, colors, and lighting MUST be an exact match to the reference image. "
             f"{digital_fix}"
@@ -66,7 +66,7 @@ class AssetManager:
                     "usage": "This image is the absolute source of truth for visual style, colors, and brushwork. Inherit everything from it."
                 }],
                 output_path=str(self.templates["bg_f"]),
-                aspect_ratio="16:9"
+                aspect_ratio=Config.IMAGE_ASPECT_RATIO
             )
 
         # 2. Generate 'style reference' characters
@@ -84,7 +84,7 @@ class AssetManager:
                     "usage": "Ensure consistent background style."
                 }],
                 output_path=str(self.templates["ref_f"]),
-                aspect_ratio="16:9"
+                aspect_ratio=Config.IMAGE_ASPECT_RATIO
             )
 
     def prepare_location_templates(self, detected_style: str):
@@ -95,7 +95,7 @@ class AssetManager:
         
         # 1. Neutral background (16:9)
         bg_prompt = (
-            f"{detected_style}. 16:9 aspect ratio, horizontal orientation. "
+            f"{detected_style}. {Config.IMAGE_ASPECT_RATIO} aspect ratio, horizontal orientation. "
             f"Pure digital environment art, empty scenery, no buildings, no people, "
             f"no text, no borders. Cinematic wide shot. {digital_fix}"
         )
@@ -104,7 +104,7 @@ class AssetManager:
             self.ai_client.generate_image(
                 bg_prompt,
                 output_path=str(self.loc_templates["bg_landscape"]),
-                aspect_ratio="16:9"
+                aspect_ratio=Config.IMAGE_ASPECT_RATIO
             )
 
 
@@ -314,7 +314,7 @@ class AssetManager:
 
         base_prompt = (
             f"{view_type} of {char.name}, {char.description}. {style_prompt}. "
-            f"16:9 aspect ratio. Single character only. No text, no labels, no frames, "
+            f"{Config.IMAGE_ASPECT_RATIO} aspect ratio. Single character only. No text, no labels, no frames, "
             f"no UI, no infographics. Exactly one depiction of the character."
         )
 
@@ -337,7 +337,7 @@ class AssetManager:
                         "usage": "Adopt the art style, line quality, and coloring."
                     }],
                     output_path=str(output_file),
-                    aspect_ratio="16:9"
+                    aspect_ratio=Config.IMAGE_ASPECT_RATIO
                 )
                 
                 qa_result = self.ai_client.validate_image(
@@ -409,7 +409,7 @@ class AssetManager:
             prompt = (
                 f"Digital landscape art of {loc.name}, {loc.description}. "
                 f"The visual style, lighting, and brushwork MUST be an exact match to the provided Environment Style Template. "
-                f"{style_prompt}. 16:9 aspect ratio, cinematic wide shot. "
+                f"{style_prompt}. {Config.IMAGE_ASPECT_RATIO} aspect ratio, cinematic wide shot. "
                 f"Single view, no text, no labels, no split screen, no frames. "
                 f"No people, no characters, no figures, no humans, no living beings. Empty scene, architecture and nature only. "
                 f"High quality environment design. {digital_fix}"
@@ -424,7 +424,7 @@ class AssetManager:
                         "usage": "This image is the absolute source of truth for visual style, color palette, and artistic technique. The new image MUST be an identical stylistic match to this reference."
                     }],
                     output_path=str(img_file),
-                    aspect_ratio="16:9"
+                    aspect_ratio=Config.IMAGE_ASPECT_RATIO
                 )
                 loc.reference_image_path = str(img_file)
                 loc.generation_prompt = prompt

@@ -54,7 +54,11 @@ class TestGenAIClient:
         args, kwargs = mock_instance.models.generate_content.call_args
         assert "response_modalities" in kwargs['config'].model_dump()
         assert kwargs['model'] == ai_client.image_model_name
-
+        
+        # Verify image_size configuration is passed correctly
+        config_dump = kwargs['config'].model_dump()
+        assert config_dump['image_config']['image_size'] == "1K" # Default from Config
+        
     def test_generate_text_with_schema(self, ai_client, mock_genai_client):
         from pydantic import BaseModel
         class DummySchema(BaseModel):

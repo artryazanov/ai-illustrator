@@ -134,7 +134,7 @@ class GenAIClient:
             }
 
     @retry(wait=wait_exponential(multiplier=1, min=4, max=30), stop=stop_after_attempt(3), reraise=True)
-    def generate_image(self, prompt: str, reference_images: Optional[List[Dict[str, str]]] = None, output_path: str = None, aspect_ratio: str = "16:9") -> str:
+    def generate_image(self, prompt: str, reference_images: Optional[List[Dict[str, str]]] = None, output_path: str = None, aspect_ratio: str = None) -> str:
         """
         Generates an image using the configured model. 
         Uses generate_content for multimodal inputs (Subject References) if provided.
@@ -150,6 +150,9 @@ class GenAIClient:
         """
         if reference_images is None:
             reference_images = []
+        
+        if aspect_ratio is None:
+            aspect_ratio = Config.IMAGE_ASPECT_RATIO
 
         try:
             logger.info(f"Generating image with model {self.image_model_name}. Refs: {len(reference_images)}")
@@ -191,6 +194,7 @@ class GenAIClient:
                     response_modalities=['IMAGE'],
                     image_config=types.ImageConfig(
                         aspect_ratio=aspect_ratio,
+                        image_size=Config.IMAGE_RESOLUTION
                     ),
                     safety_settings=[
                         types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_ONLY_HIGH"),

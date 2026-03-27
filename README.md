@@ -3,7 +3,7 @@
 [![Tests](https://github.com/artryazanov/ai-illustrator/actions/workflows/tests.yml/badge.svg)](https://github.com/artryazanov/ai-illustrator/actions/workflows/tests.yml)
 [![Linting](https://github.com/artryazanov/ai-illustrator/actions/workflows/lint.yml/badge.svg)](https://github.com/artryazanov/ai-illustrator/actions/workflows/lint.yml)
 [![codecov](https://codecov.io/gh/artryazanov/ai-illustrator/branch/main/graph/badge.svg)](https://codecov.io/gh/artryazanov/ai-illustrator)
-![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)
+![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.14-blue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 AI Illustrator is a powerful tool designed to automatically generate consistent, high-quality illustrations for stories using Google's Gemini models for both text analysis and image generation. It processes a story text file, analyzes it to understand the visual style, characters, and locations, and then generates a sequence of cinematic illustrations.
@@ -34,7 +34,7 @@ AI Illustrator is a powerful tool designed to automatically generate consistent,
 
 ## 🛠️ Prerequisites
 
--   **Python 3.10+** (if running locally)
+-   **Python 3.12+** (if running locally)
 -   **Docker** & **Docker Compose** (recommended for isolation)
 -   **Google Cloud API Key** with access to Gemini models (including image generation capabilities).
 
@@ -54,8 +54,10 @@ cp .env.example .env
 Open `.env` and set your variables:
 ```ini
 GEMINI_API_KEY=your_api_key_here
-TEXT_MODEL_NAME=gemini-3-pro-preview # or compatible
-IMAGE_MODEL_NAME=gemini-3-pro-image-preview # or specific imagen model
+TEXT_MODEL_NAME=gemini-3.1-pro-preview # or compatible
+IMAGE_MODEL_NAME=gemini-3.1-flash-image-preview # or specific imagen model
+IMAGE_RESOLUTION=1K # Options: 512, 1K, 2K, 4K
+IMAGE_ASPECT_RATIO=1:1 # Options: 1:1, 1:4, 1:8, 2:3, 3:2, 3:4, 4:1, 4:3, 4:5, 5:4, 8:1, 9:16, 16:9, 21:9
 ```
 
 ### 3. Running with Docker (Recommended)

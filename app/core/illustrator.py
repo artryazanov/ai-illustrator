@@ -193,7 +193,7 @@ class StoryIllustrator:
                     prompt=current_prompt,
                     reference_images=reference_images,
                     output_path=str(output_path),
-                    aspect_ratio="16:9"
+                    aspect_ratio=Config.IMAGE_ASPECT_RATIO
                 )
                 
                 qa_result = self.ai_client.validate_image(
