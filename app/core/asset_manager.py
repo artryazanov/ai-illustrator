@@ -6,7 +6,7 @@ from typing import List, Dict, Optional
 
 from app.config import Config
 from app.core.ai_client import GenAIClient
-from app.core.models import Character, Location
+from app.core.models import Character, Location, SemanticMatchResult
 
 logger = logging.getLogger(__name__)
 
@@ -306,30 +306,66 @@ class AssetManager:
 
         digital_fix = Config.DIGITAL_FIX
         view_type = "full body shot"
-        prompt = (
+        
+        validation_rules = """
+        1. Character Rule: There must be EXACTLY ONE character. No twins, no multiple angles of the same person.
+        2. Background Rule: Clean background, no text, no captions.
+        """
+
+        base_prompt = (
             f"{view_type} of {char.name}, {char.description}. {style_prompt}. "
             f"16:9 aspect ratio. Single character only. No text, no labels, no frames, "
-            f"no UI, no infographics. Exactly one depiction of the character. {digital_fix}"
+            f"no UI, no infographics. Exactly one depiction of the character."
         )
 
-        logger.info(f"Generating full body for {char.name}...")
-        try:
-            self.ai_client.generate_image(
-                prompt=prompt,
-                reference_images=[{
-                    "path": str(style_ref),
-                    "purpose": "Character Style Reference",
-                    "usage": "Adopt the art style, line quality, and coloring."
-                }],
-                output_path=str(output_file),
-                aspect_ratio="16:9"
-            )
+        attempt = 1
+        feedback = None
+
+        while attempt <= Config.MAX_RETRIES:
+            logger.info(f"Generating full body for {char.name} (Attempt {attempt}/{Config.MAX_RETRIES})...")
+            
+            current_prompt = base_prompt + f"\n{digital_fix}"
+            if feedback:
+                current_prompt += f"\n\n[CRITICAL CORRECTION REQUIRED]\nThe previous attempt failed QA: '{feedback}'. You MUST fix this error."
+
+            try:
+                self.ai_client.generate_image(
+                    prompt=current_prompt,
+                    reference_images=[{
+                        "path": str(style_ref),
+                        "purpose": "Character Style Reference",
+                        "usage": "Adopt the art style, line quality, and coloring."
+                    }],
+                    output_path=str(output_file),
+                    aspect_ratio="16:9"
+                )
+                
+                qa_result = self.ai_client.validate_image(
+                    generated_image_path=str(output_file),
+                    validation_rules=validation_rules,
+                    reference_images=[{"path": str(style_ref)}]
+                )
+                
+                if qa_result.is_valid:
+                    logger.info(f"✅ Character {char.name} passed QA validation!")
+                    char.full_body_path = str(output_file)
+                    char.generation_prompt = current_prompt
+                    return True
+                else:
+                    logger.warning(f"❌ Character {char.name} validation failed: {qa_result.feedback}")
+                    feedback = qa_result.feedback
+                    attempt += 1
+            except Exception as e:
+                logger.error(f"Failed to generate full body for {char.name} on attempt {attempt}: {e}")
+                attempt += 1
+
+        logger.warning(f"⚠️ Max retries reached or failed to generate Character {char.name}.")
+        if output_file.exists():
             char.full_body_path = str(output_file)
-            char.generation_prompt = prompt
+            char.generation_prompt = current_prompt
             return True
-        except Exception as e:
-            logger.error(f"Failed to generate full body for {char.name}: {e}")
-            return False
+        
+        return False
 
     def generate_location_assets(self, locations: List[Location], style_prompt: str):
         # Determine next ID
@@ -437,14 +473,15 @@ class AssetManager:
         """
 
         try:
-            response_text = self.ai_client.generate_text(prompt, schema=None)
-            # Cleanup json
-            clean_text = response_text.replace("```json", "").replace("```", "").strip()
-            data = json.loads(clean_text)
+            response_data = self.ai_client.generate_text(prompt, schema=SemanticMatchResult)
+            if isinstance(response_data, SemanticMatchResult):
+                data = response_data.model_dump()
+            else:
+                clean_text = response_data.replace("```json", "").replace("```", "").strip()
+                data = json.loads(clean_text)
             
             match_id = data.get("match_id")
             if match_id is not None:
-                # Find the object with this ID
                 for c in unique_chars.values():
                     if c.id == match_id:
                         return c
@@ -487,9 +524,12 @@ class AssetManager:
         """
 
         try:
-            response_text = self.ai_client.generate_text(prompt, schema=None)
-            clean_text = response_text.replace("```json", "").replace("```", "").strip()
-            data = json.loads(clean_text)
+            response_data = self.ai_client.generate_text(prompt, schema=SemanticMatchResult)
+            if isinstance(response_data, SemanticMatchResult):
+                data = response_data.model_dump()
+            else:
+                clean_text = response_data.replace("```json", "").replace("```", "").strip()
+                data = json.loads(clean_text)
             
             match_id = data.get("match_id")
             if match_id is not None:

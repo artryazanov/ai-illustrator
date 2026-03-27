@@ -128,10 +128,9 @@ class TestAssetManager:
             assert asset_manager.ai_client.generate_image.call_count == 1
             assert "Les" in asset_manager.locations
     def test_load_data_error(self, asset_manager):
-        with patch("builtins.open", mock_open()) as m:
-            m.side_effect = Exception("Read Error")
-            # Should catch exception and log error, not crash
-            asset_manager._load_data()
+        with patch("pathlib.Path.exists", return_value=True):
+            with patch("builtins.open", side_effect=Exception("Read Error")):
+                asset_manager._load_data()
             
     def test_save_data_error(self, asset_manager):
         with patch("builtins.open", mock_open()) as m:
@@ -198,3 +197,122 @@ class TestAssetManager:
         asset_manager.generate_location_assets([loc], "style")
         # Should catch exception
         assert loc.reference_image_path is None
+
+    def test_generate_single_card_existing(self, asset_manager, tmp_path):
+        char = Character(name="C", description="D")
+        out = tmp_path / "out.jpg"
+        out.touch() # exists
+        result = asset_manager._generate_single_card(char, "style", out)
+        assert result is True
+        assert char.full_body_path == str(out)
+
+    def test_generate_single_card_qa_retry(self, asset_manager, tmp_path):
+        from app.core.models import ImageValidationResult
+        char = Character(name="C", description="D")
+        out = tmp_path / "out.jpg"
+        
+        fail_res = ImageValidationResult(is_valid=False, feedback="Bad")
+        succ_res = ImageValidationResult(is_valid=True, feedback="")
+        asset_manager.ai_client.validate_image.side_effect = [fail_res, succ_res]
+        
+        result = asset_manager._generate_single_card(char, "style", out)
+        assert result is True
+        assert asset_manager.ai_client.validate_image.call_count == 2
+        args, kwargs = asset_manager.ai_client.generate_image.call_args
+        assert "[CRITICAL CORRECTION REQUIRED]" in kwargs['prompt']
+
+    def test_generate_single_card_max_retries_fallback(self, asset_manager, tmp_path):
+        from app.core.models import ImageValidationResult
+        char = Character(name="C", description="D")
+        out = tmp_path / "out.jpg"
+        
+        fail_res = ImageValidationResult(is_valid=False, feedback="Bad")
+        asset_manager.ai_client.validate_image.return_value = fail_res
+        
+        # When generate_image is called, it simulates the file being created
+        def mock_generate(*args, **kwargs):
+            out.touch()
+        asset_manager.ai_client.generate_image.side_effect = mock_generate
+        
+        result = asset_manager._generate_single_card(char, "style", out)
+        assert result is True 
+        assert asset_manager.ai_client.validate_image.call_count == 3
+        
+    def test_generate_location_assets_no_original_name(self, asset_manager):
+        loc = Location(name="Loc", description="Desc")
+        asset_manager.ai_client.translate_to_english.return_value = "Loc"
+        asset_manager.generate_location_assets([loc], "style")
+        assert loc.original_name == "Loc"
+
+    def test_check_existing_character_semantic_no_chars(self, asset_manager):
+        char = Character(name="C", description="D")
+        assert asset_manager._check_existing_character_semantic(char) is None
+        
+        asset_manager.characters = {"c": Character(name="C", description="D")}
+        assert asset_manager._check_existing_character_semantic(char) is None
+
+    def test_check_existing_character_semantic_success(self, asset_manager):
+        from app.core.models import SemanticMatchResult
+        char = Character(name="C", description="D")
+        asset_manager.characters = {"c": Character(id=1, name="Old", description="D")}
+        
+        asset_manager.ai_client.generate_text.return_value = SemanticMatchResult(match_id=1, reason="x")
+        match = asset_manager._check_existing_character_semantic(char)
+        assert match.id == 1
+
+    def test_check_existing_character_semantic_exception(self, asset_manager):
+        char = Character(name="C", description="D")
+        asset_manager.characters = {"c": Character(id=1, name="Old", description="D")}
+        asset_manager.ai_client.generate_text.side_effect = Exception("Err")
+        assert asset_manager._check_existing_character_semantic(char) is None
+
+    def test_check_existing_location_semantic_no_locs(self, asset_manager):
+        loc = Location(name="L", description="D")
+        assert asset_manager._check_existing_location_semantic(loc) is None
+        
+        asset_manager.locations = {"l": Location(name="L", description="D")}
+        assert asset_manager._check_existing_location_semantic(loc) is None
+
+    def test_check_existing_location_semantic_success(self, asset_manager):
+        from app.core.models import SemanticMatchResult
+        loc = Location(name="L", description="D")
+        asset_manager.locations = {"l": Location(id=2, name="Old", description="D")}
+        
+        # Exact match logic branch
+        asset_manager.ai_client.generate_text.return_value = SemanticMatchResult(match_id=2, reason="x")
+        match = asset_manager._check_existing_location_semantic(loc)
+        assert match.id == 2
+        
+        # Match ID not found in dict
+        asset_manager.ai_client.generate_text.return_value = SemanticMatchResult(match_id=99, reason="x")
+        match2 = asset_manager._check_existing_location_semantic(loc)
+        assert match2 is None
+
+    def test_check_existing_location_semantic_exception(self, asset_manager):
+        loc = Location(name="L", description="D")
+        asset_manager.locations = {"l": Location(id=2, name="Old", description="D")}
+        asset_manager.ai_client.generate_text.side_effect = Exception("Err")
+        assert asset_manager._check_existing_location_semantic(loc) is None
+
+    def test_get_getters(self, asset_manager):
+        char = Character(name="Exact", description="D")
+        char.reference_image_path = "c.jpg" 
+        
+        loc = Location(name="ExactLoc", description="D")
+        loc.reference_image_path = "l.jpg"
+        
+        asset_manager.characters = {"Exact": char}
+        asset_manager.locations = {"ExactLoc": loc}
+        
+        assert asset_manager.get_character_data("Exact") == char
+        assert asset_manager.get_location_data("ExactLoc") == loc
+        
+        # Test partial matches
+        assert asset_manager.get_character_data("Exa") == char
+        assert asset_manager.get_location_data("Exa") == loc
+        
+        assert asset_manager.get_character_ref("Exact") == "c.jpg"
+        assert asset_manager.get_character_ref("NotExist") is None
+        
+        assert asset_manager.get_location_ref("ExactLoc") == "l.jpg"
+        assert asset_manager.get_location_ref("NotExist") is None

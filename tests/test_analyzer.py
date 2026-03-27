@@ -1,6 +1,6 @@
 
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 import json
 from app.core.analyzer import StoryAnalyzer
 from app.core.models import Scene, Character, Location
@@ -108,3 +108,57 @@ class TestStoryAnalyzer:
         assert len(chunks) == 2
         assert chunks[0] == "01234"
         assert chunks[1] == "56789"
+
+    def test_simple_text_splitter_empty_chunks(self, analyzer):
+        text = "Hello\n\n\n\nWorld of Python that is long enough"
+        chunks = analyzer.simple_text_splitter(text, chunk_size=10)
+        assert len(chunks) > 0
+        assert all(chunk.strip() != "" for chunk in chunks)
+
+    def test_extract_scenes_json_fallback(self, analyzer):
+        analyzer.ai_client.generate_text.return_value = '```json\n[{"id": 1, "start_index": 0, "end_index": 10, "time_of_day": "Day", "location_name": "Park", "characters_present": [], "action_description": "action", "visual_description": "visual", "mood": "mood", "summary": "summary", "original_text_segment": "text"}]\n```'
+        scenes = analyzer.extract_scenes("text")
+        assert len(scenes) == 1
+
+    def test_extract_characters_json_fallback(self, analyzer):
+        analyzer.ai_client.generate_text.return_value = '```json\n[{"name": "Char", "description": "desc", "original_name": "Char"}]\n```'
+        chars = analyzer.extract_characters("text")
+        assert len(chars) == 1
+
+    def test_extract_locations_json_fallback(self, analyzer):
+        analyzer.ai_client.generate_text.return_value = '```json\n[{"name": "Loc", "description": "desc", "original_name": "Loc"}]\n```'
+        locs = analyzer.extract_locations("text")
+        assert len(locs) == 1
+
+    def test_extract_scenes_native_list(self, analyzer):
+        s1 = Scene(id=1, start_index=0, end_index=10, time_of_day="Day", location_name="Park", characters_present=[], action_description="a", visual_description="v", mood="m", summary="s", original_text_segment="t")
+        analyzer.ai_client.generate_text.return_value = [s1]
+        scenes = analyzer.extract_scenes("text")
+        assert len(scenes) == 1
+
+    def test_extract_scenes_non_list(self, analyzer):
+        analyzer.ai_client.generate_text.return_value = '{"not": "list"}'
+        scenes = analyzer.extract_scenes("text")
+        assert len(scenes) == 0
+
+    def test_extract_scenes_non_dict_elements(self, analyzer):
+        analyzer.ai_client.generate_text.return_value = ["I am just a string"]
+        scenes = analyzer.extract_scenes("text")
+        assert len(scenes) == 0
+
+    def test_extract_scenes_chunk_summary(self, analyzer):
+        text = "a" * 100
+        # Overlap = 0, size = 50 => splits to 2 chunks
+        analyzer.ai_client.generate_text.side_effect = ['```json\n[]\n```', Exception("Summary exception"), '```json\n[]\n```']
+        with patch.object(analyzer, 'simple_text_splitter', return_value=["Chunk1", "Chunk2"]):
+            analyzer.extract_scenes(text)
+
+    def test_extract_characters_native_list(self, analyzer):
+        c1 = Character(name="C", description="D")
+        analyzer.ai_client.generate_text.return_value = [c1]
+        assert len(analyzer.extract_characters("text")) == 1
+
+    def test_extract_locations_native_list(self, analyzer):
+        l1 = Location(name="L", description="D")
+        analyzer.ai_client.generate_text.return_value = [l1]
+        assert len(analyzer.extract_locations("text")) == 1

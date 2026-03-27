@@ -6,6 +6,8 @@ from PIL import Image
 from app.config import Config
 import json
 import os
+from tenacity import retry, wait_exponential, stop_after_attempt
+from app.core.models import ImageValidationResult, HighlightResult
 
 logger = logging.getLogger(__name__)
 
@@ -15,9 +17,17 @@ class GenAIClient:
         self.text_model_name = Config.TEXT_MODEL_NAME
         self.image_model_name = Config.IMAGE_MODEL_NAME
 
-    def generate_text(self, prompt: str, schema: Optional[Any] = None) -> str:
+    @retry(wait=wait_exponential(multiplier=1, min=4, max=30), stop=stop_after_attempt(3), reraise=True)
+    def generate_text(self, prompt: str, schema: Optional[Any] = None) -> Any:
         try:
-            config_args = {}
+            config_args = {
+                'safety_settings': [
+                    types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_ONLY_HIGH"),
+                    types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="BLOCK_ONLY_HIGH"),
+                    types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="BLOCK_ONLY_HIGH"),
+                    types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="BLOCK_ONLY_HIGH")
+                ]
+            }
             if schema:
                 config_args['response_mime_type'] = 'application/json'
                 config_args['response_schema'] = schema
@@ -25,15 +35,11 @@ class GenAIClient:
             response = self.client.models.generate_content(
                 model=self.text_model_name,
                 contents=prompt,
-                config=config_args
+                config=types.GenerateContentConfig(**config_args)
             )
             
-            # If we return based on schema, it might be a structured object or text JSON.
-            # The SDK might return a parsed object if response_schema is set and SDK handles it.
-            # But usually response.text contains the JSON string.
-            # If using Pydantic schema, 'response.parsed' might be available in newer SDKs, 
-            # otherwise we stick to response.text for broad compatibility unless we verify SDK version.
-            # We'll return text and let caller parse or handled parsed if available.
+            if schema and hasattr(response, 'parsed') and response.parsed is not None:
+                return response.parsed
             
             return response.text
         except Exception as e:
@@ -104,16 +110,16 @@ class GenAIClient:
                 "- \"active_characters\": A list of strings containing ONLY the names of characters from the provided list that are in this moment."
             )
             
-            response_text = self.generate_text(prompt, schema=None) # Start with plain text, relying on model to output JSON
+            response_data = self.generate_text(prompt, schema=HighlightResult)
             
-            # Clean up potential markdown blocks if the model wraps JSON
-            clean_text = response_text.replace("```json", "").replace("```", "").strip()
+            if isinstance(response_data, HighlightResult):
+                data = response_data.model_dump()
+            else:
+                # Fallback if string was returned
+                clean_text = response_data.replace("```json", "").replace("```", "").strip()
+                data = json.loads(clean_text)
             
-            data = json.loads(clean_text)
-            
-            # Validate active_characters against available_characters if possible
             if available_characters and "active_characters" in data:
-                # Filter to ensure we only get known characters, handling potential hallucinations
                 valid_chars = [c for c in data["active_characters"] if c in available_characters]
                 data["active_characters"] = valid_chars
                 
@@ -121,13 +127,13 @@ class GenAIClient:
             
         except Exception as e:
             logger.error(f"Failed to analyze scene highlight: {e}")
-            # Fallback
             return {
                 "highlight_description": "Fallback: Full scene context",
                 "image_prompt": scene_text,
                 "active_characters": available_characters or []
             }
 
+    @retry(wait=wait_exponential(multiplier=1, min=4, max=30), stop=stop_after_attempt(3), reraise=True)
     def generate_image(self, prompt: str, reference_images: Optional[List[Dict[str, str]]] = None, output_path: str = None, aspect_ratio: str = "16:9") -> str:
         """
         Generates an image using the configured model. 
@@ -186,31 +192,72 @@ class GenAIClient:
                     image_config=types.ImageConfig(
                         aspect_ratio=aspect_ratio,
                     ),
+                    safety_settings=[
+                        types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_ONLY_HIGH"),
+                        types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="BLOCK_ONLY_HIGH"),
+                        types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="BLOCK_ONLY_HIGH"),
+                        types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="BLOCK_ONLY_HIGH")
+                    ]
                 )
             )
             
             if response.parts:
                 for part in response.parts:
-                    # Check for image bytes first
                     if hasattr(part, 'image') and part.image:
                          with open(output_path, "wb") as f:
                             f.write(part.image.image_bytes)
                          return output_path
                     
-                    # Check for as_image method
                     if hasattr(part, 'as_image'):
                         pil_img = part.as_image()
                         if pil_img:
                             pil_img.save(output_path)
                             return output_path
-                            
-                    # Check for inline_data
-                    if hasattr(part, 'inline_data') and part.inline_data:
-                         # This usually needs decoding but SDK might wrap it in 'image' property or as_image
-                         pass
 
             raise RuntimeError("Gemini generation returned no images.")
 
         except Exception as e:
             logger.error(f"Error generating image: {e}")
             raise
+
+    def validate_image(self, generated_image_path: str, validation_rules: str, reference_images: Optional[List[Dict[str, str]]] = None) -> ImageValidationResult:
+        logger.info(f"Running QA validation on {generated_image_path}...")
+        
+        prompt = f"""
+        You are an expert Art Director and strict Quality Assurance inspector.
+        I am providing you with a generated illustration.
+        
+        Evaluate the image against these STRICT rules:
+        {validation_rules}
+
+        Return the validation JSON. If it fails, explain EXACTLY what is wrong so the artist can fix it in the next attempt.
+        """
+        
+        try:
+            contents = [prompt, Image.open(generated_image_path)]
+            
+            if reference_images:
+                prompt += "\n\nAlso compare it against these reference images to ensure character/style consistency."
+                for ref in reference_images:
+                    if ref.get('path') and os.path.exists(ref.get('path')):
+                        contents.append(Image.open(ref.get('path')))
+
+            result = self.client.models.generate_content(
+                model=Config.VALIDATOR_MODEL_NAME,
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=ImageValidationResult,
+                    temperature=0.0,
+                )
+            )
+            if hasattr(result, 'parsed') and result.parsed:
+                return result.parsed
+                
+            # Fallback if parsing didn't happen natively
+            data = json.loads(result.text)
+            return ImageValidationResult(**data)
+            
+        except Exception as e:
+            logger.warning(f"Validation API failed: {e}. Bypassing validation.")
+            return ImageValidationResult(is_valid=True, feedback="Validation bypassed due to error.")

@@ -5,3 +5,4 @@ pillow
 pytest
 pytest-mock
 pytest-cov
+tenacity

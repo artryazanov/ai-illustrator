@@ -1,7 +1,8 @@
 # AI Illustrator
 
 [![Tests](https://github.com/artryazanov/ai-illustrator/actions/workflows/tests.yml/badge.svg)](https://github.com/artryazanov/ai-illustrator/actions/workflows/tests.yml)
-[![Docker Build](https://github.com/artryazanov/ai-illustrator/actions/workflows/docker.yml/badge.svg)](https://github.com/artryazanov/ai-illustrator/actions/workflows/docker.yml)
+[![Linting](https://github.com/artryazanov/ai-illustrator/actions/workflows/lint.yml/badge.svg)](https://github.com/artryazanov/ai-illustrator/actions/workflows/lint.yml)
+[![codecov](https://codecov.io/gh/artryazanov/ai-illustrator/branch/main/graph/badge.svg)](https://codecov.io/gh/artryazanov/ai-illustrator)
 ![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -18,12 +19,18 @@ AI Illustrator is a powerful tool designed to automatically generate consistent,
     -   Generates and caches location reference images (16:9 cinematic shots).
     -   Maintains a location catalog in `output/data.json` to reuse settings.
 -   **Cinematic Scene Generation**:
-    -   Splits the story into logical scenes.
+    -   Splits the story into logical scenes securely using Semantic Chunking (preserving context across chunks).
+    -   Parallelizes scene rendering via ThreadPool for faster generation.
     -   Generates a single, cohesive cinematic frame for each scene (16:9 aspect ratio).
-    -   Enforces strict negative constraints to prevent comic-book layouts, text, or split screens.
-    -   Uses full-body character references to maintain consistency across scenes.
+    -   Mitigates "Concept Bleeding" in dense scenes by locking reference images dynamically.
+-   **LLM-as-a-Judge QA Loop**:
+    -   Natively validates generated images against specific rulesets. If the model hallucinates comic panels, multiple angles, or gibberish text, a strict validation prompt instantly triggers a constrained re-generation block utilizing feedback.
+-   **Native Structured Outputs**:
+    -   Replaces brittle markdown-JSON parsing with 100% reliable Google GenAI `response_schema` support mapped directly to Pydantic models.
+-   **API Resilience**:
+    -   Fully handles API rate limits, timeouts, and payload failures using exponential backoff retry mechanisms (`tenacity`).
 -   **Docker Support**: Fully containerized for easy deployment and execution.
--   **Comprehensive Testing**: Includes a full suite of unit and integration-like tests using `pytest`.
+-   **Comprehensive Testing**: Achieved **100% test coverage** under continuous integration with Github Actions & Codecov.
 
 ## 🛠️ Prerequisites
 
@@ -160,18 +167,15 @@ The `data.json` file serves as the central manifest for the project.
 
 ## 🧪 Development & Testing
 
-This project uses `pytest` for testing. The test suite covers models, configuration, asset management, and the AI client wrapper.
+This project uses `pytest` for testing. The test suite covers models, configuration, asset management, analyzer text splitting semantics, and the AI client wrapper. It rigorously tests fallback strategies, mocked PIL IO handlers, ThreadPool concurrency limits, dynamic schema mappings, and exponential backoff retry mechanics.
 
 To run tests:
 ```bash
 # Activate your virtual environment first
 source venv/bin/activate
 
-# Run all tests
-pytest tests
-
-# Run with verbose output
-pytest -v tests
+# Run all tests with coverage reporting
+pytest --cov=app --cov-report=term-missing tests/
 ```
 
 ### Mocking

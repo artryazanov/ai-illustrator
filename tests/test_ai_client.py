@@ -56,18 +56,23 @@ class TestGenAIClient:
         assert kwargs['model'] == ai_client.image_model_name
 
     def test_generate_text_with_schema(self, ai_client, mock_genai_client):
+        from pydantic import BaseModel
+        class DummySchema(BaseModel):
+            key: str
+
         mock_instance = mock_genai_client.return_value
         mock_response = MagicMock()
         mock_response.text = '{"key": "value"}'
+        mock_response.parsed = DummySchema(key="value")
         mock_instance.models.generate_content.return_value = mock_response
 
-        schema = MagicMock()
-        text = ai_client.generate_text("prompt", schema=schema)
+        schema = DummySchema
+        obj = ai_client.generate_text("prompt", schema=schema)
         
-        assert text == '{"key": "value"}'
+        assert obj.key == "value"
         args, kwargs = mock_instance.models.generate_content.call_args
-        assert kwargs['config']['response_mime_type'] == 'application/json'
-        assert kwargs['config']['response_schema'] == schema
+        config_dump = kwargs['config'].model_dump()
+        assert config_dump.get('response_mime_type') == 'application/json'
 
     def test_generate_text_exception(self, ai_client, mock_genai_client):
         mock_instance = mock_genai_client.return_value
@@ -164,4 +169,89 @@ class TestGenAIClient:
         
         with pytest.raises(Exception, match="Gen Error"):
             ai_client.generate_image("prompt")
+
+    @patch("app.core.ai_client.Image")
+    def test_validate_image_success(self, mock_image, ai_client, mock_genai_client):
+        from app.core.models import ImageValidationResult
+        
+        mock_instance = mock_genai_client.return_value
+        mock_response = MagicMock()
+        mock_response.text = '{"is_valid": true, "feedback": ""}'
+        mock_response.parsed = ImageValidationResult(is_valid=True, feedback="")
+        mock_instance.models.generate_content.return_value = mock_response
+        
+        result = ai_client.validate_image("fake.jpg", "rules")
+        assert result.is_valid is True
+        
+    @patch("app.core.ai_client.Image")
+    def test_validate_image_success_fallback(self, mock_image, ai_client, mock_genai_client):
+        mock_instance = mock_genai_client.return_value
+        mock_response = MagicMock()
+        mock_response.text = '{"is_valid": false, "feedback": "bad"}'
+        mock_response.parsed = None
+        mock_instance.models.generate_content.return_value = mock_response
+        
+        result = ai_client.validate_image("fake.jpg", "rules")
+        assert result.is_valid is False
+        assert result.feedback == "bad"
+        
+    @patch("app.core.ai_client.Image")
+    def test_validate_image_with_refs(self, mock_image, ai_client, mock_genai_client):
+        from app.core.models import ImageValidationResult
+        
+        mock_instance = mock_genai_client.return_value
+        mock_response = MagicMock()
+        mock_response.parsed = ImageValidationResult(is_valid=True, feedback="")
+        mock_instance.models.generate_content.return_value = mock_response
+        
+        import os
+        with patch("os.path.exists", return_value=True):
+            result = ai_client.validate_image("fake.jpg", "rules", [{"path": "ref.jpg"}])
+            
+        assert result.is_valid is True
+        args, kwargs = mock_instance.models.generate_content.call_args
+        assert len(kwargs['contents']) == 3 
+
+    def test_validate_image_exception(self, ai_client, mock_genai_client):
+        mock_instance = mock_genai_client.return_value
+        mock_instance.models.generate_content.side_effect = Exception("API")
+        
+        result = ai_client.validate_image("fake.jpg", "rules")
+        assert result.is_valid is True
+        assert "Validation bypassed" in result.feedback
+
+    def test_generate_image_fallback_exception(self, ai_client, mock_genai_client, tmp_path):
+        mock_instance = mock_genai_client.return_value
+        mock_response = MagicMock()
+        
+        # We need response.parts[0].image to throw an attribute error when accessed
+        mock_part = MagicMock()
+        del mock_part.image 
+        del mock_part.as_image
+        mock_response.parts = [mock_part]
+        
+        mock_instance.models.generate_content.return_value = mock_response
+        with pytest.raises(RuntimeError, match="Gemini generation returned no images."):
+            ai_client.generate_image("prompt", output_path=str(tmp_path / "out.jpg"))
+
+    def test_generate_image_reference_open_exception(self, ai_client, mock_genai_client, tmp_path):
+        ref_path = tmp_path / "fake.jpg"
+        ref_path.touch()
+        
+        # Test the PIL Image.open fallback warning on line 181
+        with patch("PIL.Image.open", side_effect=Exception("Bad Image")):
+            # Simulate a successful generation so it doesn't fail below
+            mock_instance = mock_genai_client.return_value
+            mock_response = MagicMock()
+            mock_part = MagicMock()
+            mock_part.image.image_bytes = b"fake"
+            mock_response.parts = [mock_part]
+            mock_instance.models.generate_content.return_value = mock_response
+            
+            # Since the reference image fails to open, contents will only have the prompt
+            ai_client.generate_image("prompt", reference_images=[{"path": str(ref_path)}], output_path=str(tmp_path / "out.jpg"))
+            
+            # Assert generate_content was called and the bad image was skipped
+            args, kwargs = mock_instance.models.generate_content.call_args
+            assert len(kwargs['contents']) == 1 # Only the prompt, image failed to load
 

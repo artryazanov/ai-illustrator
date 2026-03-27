@@ -21,6 +21,7 @@ def test_analyze_scene_for_highlight_success(mock_genai_client):
     
     mock_response = MagicMock()
     mock_response.text = json.dumps(expected_response)
+    mock_response.parsed = None
     mock_genai_client.client.models.generate_content.return_value = mock_response
 
     # Call method
@@ -46,6 +47,7 @@ def test_analyze_scene_for_highlight_json_cleanup(mock_genai_client):
     
     mock_response = MagicMock()
     mock_response.text = markdown_response
+    mock_response.parsed = None
     mock_genai_client.client.models.generate_content.return_value = mock_response
 
     # Call method
@@ -78,6 +80,7 @@ def test_analyze_scene_for_highlight_active_characters(mock_genai_client):
     # Mock return value
     mock_response = MagicMock()
     mock_response.text = json.dumps(expected_response)
+    mock_response.parsed = None
     mock_genai_client.client.models.generate_content.return_value = mock_response
 
     # Call method with available characters
@@ -103,6 +106,7 @@ def test_analyze_scene_for_highlight_hallucination_filtering(mock_genai_client):
     
     mock_response = MagicMock()
     mock_response.text = json.dumps(expected_response)
+    mock_response.parsed = None
     mock_genai_client.client.models.generate_content.return_value = mock_response
 
     # Call method
@@ -112,3 +116,30 @@ def test_analyze_scene_for_highlight_hallucination_filtering(mock_genai_client):
     # Assertions - Gandalf should be filtered out
     assert "Alice" in result["active_characters"]
     assert "Gandalf" not in result["active_characters"]
+
+def test_analyze_scene_for_highlight_empty_active_chars(mock_genai_client):
+    expected_response = {
+        "highlight_description": "desc",
+        "image_prompt": "prompt",
+        "active_characters": []
+    }
+    mock_response = MagicMock()
+    mock_response.text = json.dumps(expected_response)
+    mock_response.parsed = None
+    mock_genai_client.client.models.generate_content.return_value = mock_response
+
+    result = mock_genai_client.analyze_scene_for_highlight("text", ["A", "B"])
+    assert result["active_characters"] == []
+
+def test_analyze_scene_for_highlight_native_schema(mock_genai_client):
+    from app.core.models import HighlightResult
+    expected_response = HighlightResult(
+        highlight_description="desc",
+        image_prompt="prompt",
+        active_characters=["Alice", "Gandalf"]
+    )
+    # the client's generate_text method is what analyze_scene_for_highlight wraps, so we mock generate_text directly
+    with patch.object(mock_genai_client, 'generate_text', return_value=expected_response):
+        result = mock_genai_client.analyze_scene_for_highlight("text", ["Alice", "Bob"])
+        assert "Alice" in result["active_characters"]
+        assert "Gandalf" not in result["active_characters"]

@@ -105,3 +105,92 @@ class TestStoryIllustrator:
         
         ref = illustrator._select_character_ref("C", scene)
         assert ref == "f.jpg"
+
+    def test_illustrate_scenes_skip_existing(self, illustrator, tmp_path):
+        scene = Scene(id=1, start_index=0, end_index=0, time_of_day="", location_name="Park", characters_present=["Alice", "Bob"], action_description="", visual_description="test", mood="", summary="", original_text_segment="")
+        
+        illustrator.ai_client.generate_filename_slug.return_value = "slug"
+        loc_data = Location(name="Park", description="Desc", id=101)
+        char_data = Character(name="Alice", description="Desc", id=1)
+        
+        # Prepopulate dicts so _save_data_json iterates over them
+        illustrator.asset_manager.characters["Alice"] = char_data
+        illustrator.asset_manager.locations["Park"] = loc_data
+        
+        illustrator.asset_manager.get_location_data.return_value = loc_data
+        illustrator.asset_manager.get_character_data.return_value = char_data
+        
+        # Create dummy file to trigger skip
+        img_file = illustrator.output_dir / f"1_slug.jpeg"
+        img_file.parent.mkdir(parents=True, exist_ok=True)
+        img_file.touch()
+        
+        illustrator.illustrate_scenes([scene], "style")
+        
+        illustrator.ai_client.analyze_scene_for_highlight.assert_not_called()
+        illustrator.ai_client.generate_image.assert_not_called()
+
+    def test_illustrate_scenes_thread_exception(self, illustrator, tmp_path):
+        scene = Scene(id=1, start_index=0, end_index=0, time_of_day="", location_name="Park", characters_present=["Alice"], action_description="", visual_description="test", mood="", summary="", original_text_segment="")
+        
+        # Force exception in thread
+        illustrator.ai_client.generate_filename_slug.side_effect = Exception("Thread crash")
+        
+        # Process should catch exception and not crash main thread
+        illustrator.illustrate_scenes([scene], "style")
+        
+        # Verify it didn't crash and called save JSON at the end
+        assert len(illustrator.illustrations_registry) == 0
+
+    def test_generate_scene_image_qa_retry(self, illustrator, tmp_path):
+        from app.core.models import ImageValidationResult
+        scene = Scene(id=1, start_index=0, end_index=0, time_of_day="", location_name="Park", characters_present=["Alice", "Bob"], action_description="", visual_description="test", mood="", summary="", original_text_segment="")
+        
+        output_path = tmp_path / "out.jpeg"
+        
+        # First attempt fails QA, second succeeds
+        fail_result = ImageValidationResult(is_valid=False, feedback="Bad")
+        success_result = ImageValidationResult(is_valid=True, feedback="")
+        illustrator.ai_client.validate_image.side_effect = [fail_result, success_result]
+        
+        illustrator._generate_scene_image(scene, "style", output_path)
+        
+        assert illustrator.ai_client.generate_image.call_count == 2
+        assert illustrator.ai_client.validate_image.call_count == 2
+
+    def test_generate_scene_image_max_retries(self, illustrator, tmp_path):
+        from app.core.models import ImageValidationResult
+        scene = Scene(id=1, start_index=0, end_index=0, time_of_day="", location_name="Park", characters_present=["Alice"], action_description="", visual_description="test", mood="", summary="", original_text_segment="")
+        
+        output_path = tmp_path / "out.jpeg"
+        
+        fail_result = ImageValidationResult(is_valid=False, feedback="Bad")
+        illustrator.ai_client.validate_image.return_value = fail_result
+        
+        # Exception on 3rd attempt to hit both exception handler and max retries failure
+        illustrator.ai_client.generate_image.side_effect = [None, None, Exception("API")]
+        
+        prompt = illustrator._generate_scene_image(scene, "style", output_path)
+        
+        assert prompt is not None
+        assert illustrator.ai_client.generate_image.call_count == 3
+        assert illustrator.ai_client.validate_image.call_count == 2
+
+    def test_select_character_ref_not_found(self, illustrator):
+        scene = Scene(id=1, start_index=0, end_index=0, time_of_day="", location_name="Park", characters_present=["Alice"], action_description="", visual_description="test", mood="", summary="", original_text_segment="")
+        illustrator.asset_manager.get_character_data.return_value = None
+        assert illustrator._select_character_ref("Missing", scene) is None
+
+    def test_save_data_json_populates_characters(self, illustrator, tmp_path):
+        char = Character(name="Alice", description="D", id=1)
+        char.original_name = "Real Alice"
+        
+        loc = Location(name="Park", description="D", id=1)
+        
+        illustrator.asset_manager.characters = {"Alice": char}
+        illustrator.asset_manager.locations = {"Park": loc}
+        
+        illustrator._save_data_json("style")
+        
+        manifest = illustrator.output_dir.parent / "data.json"
+        assert manifest.exists()

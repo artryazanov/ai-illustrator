@@ -1,6 +1,19 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
+class ImageValidationResult(BaseModel):
+    is_valid: bool = Field(description="True if the image PERFECTLY meets all structural rules without any violations.")
+    feedback: str = Field(description="If invalid, provide EXTREMELY specific feedback on what is wrong and how the image generator must fix it in the next attempt.")
+
+class HighlightResult(BaseModel):
+    highlight_description: str = Field(description="A brief explanation of the chosen moment.")
+    image_prompt: str = Field(description="A highly detailed visual description of THIS SPECIFIC MOMENT ONLY. Describe the subjects, action, lighting, and camera angle.")
+    active_characters: List[str] = Field(default_factory=list, description="A list of strings containing ONLY the names of characters from the provided list that are in this moment.")
+
+class SemanticMatchResult(BaseModel):
+    match_id: Optional[int] = Field(default=None, description="The integer ID of the matched entity, or null if no match.")
+    reason: str = Field(description="The reason for the match or non-match.")
+
 class Character(BaseModel):
     id: Optional[int] = Field(default=None, description="Unique identifier for the character")
     name: str = Field(description="Name of the character")

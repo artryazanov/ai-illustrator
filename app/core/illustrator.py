@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 from typing import List, Optional
+import concurrent.futures
 
 from app.core.ai_client import GenAIClient
 from app.core.asset_manager import AssetManager
@@ -22,68 +23,66 @@ class StoryIllustrator:
         self.illustrations_registry = []
 
     def illustrate_scenes(self, scenes: List[Scene], style_prompt: str):
-        for scene in scenes:
-            # 1. Generate filename slug
-            # We use visual description for a better filename slug than just location name
-            slug = self.ai_client.generate_filename_slug(scene.visual_description or scene.summary)
-            filename = f"{scene.id}_{slug}.jpeg"
-            
-            # Direct file path in illustrations folder
-            img_file = self.output_dir / filename
-
-            # 2. Collect location info
-            # 2. Collect location info
-            loc_data = self.asset_manager.get_location_data(scene.location_name)
-            location_info = {
-                "id": getattr(loc_data, 'id', None),
-                "name": scene.location_name
-            }
-
-            # 3. Collect character info
-            characters_info = []
-            for char_name in scene.characters_present:
-                # Try to find character data using fuzzy matching helper
-                char_data = self.asset_manager.get_character_data(char_name)
-                if char_data:
-                    characters_info.append({
-                        "id": getattr(char_data, 'id', None),
-                        "name": char_name,
-                        "full_body_path": getattr(char_data, 'full_body_path', None)
-                    })
-
-            # 4. Save Scene JSON Metadata
-            scene_metadata = {
-                "scene_id": scene.id,
-                "story_segment": scene.original_text_segment,
-                "name": slug, # Saving the generated slug/name
-                "location": location_info,
-                "characters": characters_info,
-                "illustration_path": str(img_file.relative_to(self.output_dir.parent)),
-                "generation_prompt": None
-            }
-            
-            # Add to global registry
-            self.illustrations_registry.append(scene_metadata)
-
-            if img_file.exists():
-                logger.info(f"Illustration for scene {scene.id} exists. Skipping generation.")
-                continue
-
-            # Analyze highlight moment to avoid temporal artifacts in long scenes
-            logger.info(f"Analyzing scene {scene.id} for highlight moment...")
-            highlight_data = self.ai_client.analyze_scene_for_highlight(
-                scene.original_text_segment, 
-                available_characters=scene.characters_present
-            )
-            highlight_prompt = highlight_data.get("image_prompt")
-            active_characters = highlight_data.get("active_characters")
-
-            prompt = self._generate_scene_image(scene, style_prompt, img_file, highlight_prompt, active_characters)
-            if prompt:
-                scene_metadata["generation_prompt"] = prompt
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            futures = [executor.submit(self._process_single_scene, scene, style_prompt) for scene in scenes]
+            concurrent.futures.wait(futures)
 
         # Save global manifest after processing all scenes
         self._save_data_json(style_prompt)
+
+    def _process_single_scene(self, scene: Scene, style_prompt: str):
+        # 1. Generate filename slug
+        slug = self.ai_client.generate_filename_slug(scene.visual_description or scene.summary)
+        filename = f"{scene.id}_{slug}.jpeg"
+        
+        img_file = self.output_dir / filename
+
+        # 2. Collect location info
+        loc_data = self.asset_manager.get_location_data(scene.location_name)
+        location_info = {
+            "id": getattr(loc_data, 'id', None),
+            "name": scene.location_name
+        }
+
+        # 3. Collect character info
+        characters_info = []
+        for char_name in scene.characters_present:
+            char_data = self.asset_manager.get_character_data(char_name)
+            if char_data:
+                characters_info.append({
+                    "id": getattr(char_data, 'id', None),
+                    "name": char_name,
+                    "full_body_path": getattr(char_data, 'full_body_path', None)
+                })
+
+        # 4. Save Scene JSON Metadata
+        scene_metadata = {
+            "scene_id": scene.id,
+            "story_segment": scene.original_text_segment,
+            "name": slug,
+            "location": location_info,
+            "characters": characters_info,
+            "illustration_path": str(img_file.relative_to(self.output_dir.parent)),
+            "generation_prompt": None
+        }
+        
+        self.illustrations_registry.append(scene_metadata)
+
+        if img_file.exists():
+            logger.info(f"Illustration for scene {scene.id} exists. Skipping generation.")
+            return
+
+        logger.info(f"Analyzing scene {scene.id} for highlight moment...")
+        highlight_data = self.ai_client.analyze_scene_for_highlight(
+            scene.original_text_segment, 
+            available_characters=scene.characters_present
+        )
+        highlight_prompt = highlight_data.get("image_prompt")
+        active_characters = highlight_data.get("active_characters")
+
+        prompt = self._generate_scene_image(scene, style_prompt, img_file, highlight_prompt, active_characters)
+        if prompt:
+            scene_metadata["generation_prompt"] = prompt
 
     def _save_data_json(self, style_prompt: str):
         """Creates a global JSON manifest with all illustrations, style, characters, and locations."""
@@ -93,16 +92,16 @@ class StoryIllustrator:
         # Collect character data for export
         char_list = []
         for name, char in self.asset_manager.characters.items():
-            char_list.append({
+            c_data = {
                 "id": char.id,
                 "original_name": char.original_name or name,
                 "name": char.name,
                 "description": char.description,
                 "reference_image_path": char.reference_image_path,
-
                 "full_body_path": char.full_body_path,
                 "generation_prompt": char.generation_prompt
-            })
+            }
+            char_list.append(c_data)
 
         # Collect location data for export
         loc_list = []
@@ -129,11 +128,12 @@ class StoryIllustrator:
 
     def _generate_scene_image(self, scene: Scene, style_prompt: str, output_path: Path, highlight_prompt: Optional[str] = None, active_characters: Optional[List[str]] = None) -> Optional[str]:
         reference_images = []
-        
-        # Determine which characters to include in the reference
-        # If highlight analysis provided active_characters (even empty list), use it.
-        # Otherwise fall back to all characters present in the scene.
         chars_to_include = active_characters if active_characters is not None else scene.characters_present
+        
+        # Concept Bleeding Fix: Limit references to the main active character if there are multiple
+        if chars_to_include and len(chars_to_include) > 1:
+            logger.info(f"Scene {scene.id} has multiple characters. Binding reference to just '{chars_to_include[0]}' to prevent concept bleeding.")
+            chars_to_include = [chars_to_include[0]]
         
         for char_name in chars_to_include:
             ref_path = self._select_character_ref(char_name, scene)
@@ -144,51 +144,81 @@ class StoryIllustrator:
                     "usage": "Inherit the exact art style, line work, and color palette from this image. Maintain character design."
                 })
 
-        # Add location reference (16:9)
         loc_ref = self.asset_manager.get_location_ref(scene.location_name)
         if loc_ref:
             reference_images.append({
                 "path": loc_ref,
-                    "purpose": "Location Environment Reference",
-                    "usage": "This image is the absolute source of truth for visual style, brushwork, and medium. The final scene must be an exact stylistic match."
+                "purpose": "Location Environment Reference",
+                "usage": "This image is the absolute source of truth for visual style, brushwork, and medium."
             })
 
-        # Add global style reference
         style_ref = self.asset_manager.templates.get("ref_f")
         if style_ref and style_ref.exists():
             reference_images.append({
                 "path": str(style_ref),
                 "purpose": "Global Art Style Reference",
-                "usage": "This image is the absolute authority for the visual style, brushwork, and medium. The final scene must be an exact stylistic match."
+                "usage": "This image is the absolute authority for the visual style."
             })
 
-        # Use the specific highlight prompt if available, otherwise fall back to visual description
         visual_core = highlight_prompt if highlight_prompt else scene.visual_description
 
-        # Enhanced prompt to prevent comic layout and enforcing style
-        prompt = (
+        validation_rules = """
+        1. Single Frame Rule: The image MUST be a single cinematic shot. NO split screens, NO comic book panels, NO grid layouts, NO borders.
+        2. No Text Rule: The image MUST contain NO text, NO watermarks, NO speech bubbles, and NO UI elements.
+        """
+
+        base_prompt = (
             f"{style_prompt}. **Single cinematic frame. One single cohesive image.**\n"
             f"**Follow the visual style of the attached reference images precisely.**\n"
             f"**STRICTLY NO multi-panels, NO comic book layout, NO grid, NO split screen, NO storyboard, NO frames.**\n"
             f"**NO text, NO captions, NO speech bubbles.**\n"
-            f"{Config.DIGITAL_FIX}\n"
             f"Scene context: {visual_core}\n"
             f"Action taking place: {scene.action_description}\n"
             f"Setting: {scene.location_name}, {scene.time_of_day}. Mood: {scene.mood}."
         )
 
-        logger.info(f"Generating illustration for Scene {scene.id} (Single Frame)...")
-        try:
-            self.ai_client.generate_image(
-                prompt=prompt,
-                reference_images=reference_images,
-                output_path=str(output_path),
-                aspect_ratio="16:9"
-            )
-            return prompt
-        except Exception as e:
-            logger.error(f"Failed to illustrate scene {scene.id}: {e}")
-            return None
+        attempt = 1
+        feedback = None
+        is_valid = False
+
+        while attempt <= Config.MAX_RETRIES:
+            logger.info(f"Generating illustration for Scene {scene.id} (Attempt {attempt}/{Config.MAX_RETRIES})...")
+            
+            current_prompt = base_prompt + f"\n{Config.DIGITAL_FIX}"
+            if feedback:
+                current_prompt += f"\n\n[CRITICAL CORRECTION REQUIRED]\nThe previous attempt failed QA: '{feedback}'. You MUST fix this error."
+
+            try:
+                self.ai_client.generate_image(
+                    prompt=current_prompt,
+                    reference_images=reference_images,
+                    output_path=str(output_path),
+                    aspect_ratio="16:9"
+                )
+                
+                qa_result = self.ai_client.validate_image(
+                    generated_image_path=str(output_path),
+                    validation_rules=validation_rules,
+                    reference_images=reference_images 
+                )
+
+                if qa_result.is_valid:
+                    logger.info(f"✅ Scene {scene.id} passed QA validation!")
+                    is_valid = True
+                    return current_prompt
+                else:
+                    logger.warning(f"❌ Scene {scene.id} validation failed: {qa_result.feedback}")
+                    feedback = qa_result.feedback
+                    attempt += 1
+
+            except Exception as e:
+                logger.error(f"Failed to illustrate scene {scene.id} on attempt {attempt}: {e}")
+                attempt += 1
+
+        if not is_valid:
+             logger.warning(f"⚠️ Max retries reached for Scene {scene.id}. Proceeding with the last generated image.")
+        
+        return current_prompt
 
     def _select_character_ref(self, char_name: str, scene: Scene) -> Optional[str]:
         """Selects character reference (always full body now)."""

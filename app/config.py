@@ -9,8 +9,14 @@ class Config:
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
     # Models as requested by user
-    TEXT_MODEL_NAME = os.getenv("TEXT_MODEL_NAME", "gemini-3-pro-preview")
-    IMAGE_MODEL_NAME = os.getenv("IMAGE_MODEL_NAME", "gemini-3-pro-image-preview")
+    TEXT_MODEL_NAME = os.getenv("TEXT_MODEL_NAME", "gemini-3.1-pro-preview")
+    IMAGE_MODEL_NAME = os.getenv("IMAGE_MODEL_NAME", "gemini-3.1-flash-image-preview")
+    
+    # Validation model for QA logic
+    VALIDATOR_MODEL_NAME = os.getenv("VALIDATOR_MODEL_NAME", "gemini-3.1-pro-preview")
+    
+    # QA Loop Settings
+    MAX_RETRIES = int(os.getenv("MAX_RETRIES", "3"))
 
     # Fallback to known working models if the preview ones are hypothetical for this environment
     # Note: Logic to switch can be added here if needed, but we stick to requirements.
