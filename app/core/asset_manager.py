@@ -22,7 +22,6 @@ class AssetManager:
         
         # Global templates
         self.templates = {
-            "bg_f": self.template_dir / "bg_fullbody.jpg",
             "ref_f": self.template_dir / "style_reference_fullbody.jpg"
         }
 
@@ -31,7 +30,7 @@ class AssetManager:
         self.locations: Dict[str, Location] = {}
         
         self.loc_templates = {
-            "bg_landscape": self.template_dir / "bg_location_16_9.jpg"
+            "bg_landscape": self.template_dir / "bg_location.jpg"
         }
         
         self.data_path = self.output_dir / "data.json"
@@ -40,72 +39,106 @@ class AssetManager:
         self._load_data()
 
     def prepare_style_templates(self, detected_style: str):
-        """Creates base backgrounds and style templates once per run."""
+        """Creates global character style templates once per run."""
         logger.info("Preparing global style templates...")
         
-        # Tech modifier to prevent "photo effect"
         digital_fix = Config.DIGITAL_FIX
         
-        # 1. Generate clean backgrounds (9:16)
-        # Rigidly forbid text and UI
-        # 1. Generate clean backgrounds (9:16)
-        # Rigidly forbid text and UI
-        bg_base_prompt = (
-            f"{detected_style}. {Config.IMAGE_ASPECT_RATIO} aspect ratio. "
-            f"Cinematic wide shot of the environment, no characters, no text. "
-            f"The visual style, colors, and lighting MUST be an exact match to the reference image. "
-            f"{digital_fix}"
-        )
-        
-        if not self.templates["bg_f"].exists():
-            self.ai_client.generate_image(
-                bg_base_prompt,
-                reference_images=[{
-                    "path": str(self.loc_templates["bg_landscape"]),
-                    "purpose": "Style Foundation",
-                    "usage": "This image is the absolute source of truth for visual style, colors, and brushwork. Inherit everything from it."
-                }],
-                output_path=str(self.templates["bg_f"]),
-                aspect_ratio=Config.IMAGE_ASPECT_RATIO
-            )
-
-        # 2. Generate 'style reference' characters
+        # 1. Generate 'style reference' character on pure white background
         style_ref_prompt = (
             f"Character design sheet, {detected_style} style. Full digital artwork. "
+            f"Subject is isolated on a PURE WHITE background. Studio lighting. "
+            f"Zero background elements, completely blank white background. "
             f"Single character, no text, no frames, no split screens, {digital_fix}"
         )
         
         if not self.templates["ref_f"].exists():
-            self.ai_client.generate_image(
-                f"{style_ref_prompt}. Full body shot, standing.",
-                reference_images=[{
-                    "path": str(self.templates["bg_f"]),
-                    "purpose": "Background Style Reference",
-                    "usage": "Ensure consistent background style."
-                }],
-                output_path=str(self.templates["ref_f"]),
-                aspect_ratio=Config.IMAGE_ASPECT_RATIO
-            )
+            validation_rules = """
+            1. Character Rule: There must be EXACTLY ONE character. No twins, no multiple angles of the same person.
+            2. Background Rule: Clean, pure white background, no environment details, no text.
+            """
+            attempt = 1
+            feedback = None
+            while attempt <= Config.MAX_RETRIES:
+                logger.info(f"Generating global character style template (Attempt {attempt}/{Config.MAX_RETRIES})...")
+                current_prompt = f"{style_ref_prompt}. Full body shot, standing."
+                if feedback:
+                    current_prompt += f"\n\n[CRITICAL CORRECTION REQUIRED]\nThe previous attempt failed QA: '{feedback}'. You MUST fix this error."
+                
+                try:
+                    self.ai_client.generate_image(
+                        current_prompt,
+                        reference_images=[],
+                        output_path=str(self.templates["ref_f"]),
+                        aspect_ratio=Config.IMAGE_ASPECT_RATIO
+                    )
+                    
+                    qa_result = self.ai_client.validate_image(
+                        generated_image_path=str(self.templates["ref_f"]),
+                        validation_rules=validation_rules,
+                        reference_images=[]
+                    )
+                    
+                    if qa_result.is_valid:
+                        logger.info("✅ Global character style template passed QA validation!")
+                        break
+                    else:
+                        logger.warning(f"❌ Global character style template validation failed: {qa_result.feedback}")
+                        feedback = qa_result.feedback
+                        attempt += 1
+                except Exception as e:
+                    logger.error(f"Failed to generate global character style template: {e}")
+                    attempt += 1
 
     def prepare_location_templates(self, detected_style: str):
-        """Creates base backgrounds and style templates for locations (16:9)."""
-        logger.info("Preparing location style templates (16:9)...")
+        """Creates base backgrounds and style templates for locations."""
+        logger.info("Preparing location style templates...")
         
         digital_fix = Config.DIGITAL_FIX
         
-        # 1. Neutral background (16:9)
+        # 1. Neutral background
         bg_prompt = (
-            f"{detected_style}. {Config.IMAGE_ASPECT_RATIO} aspect ratio, horizontal orientation. "
+            f"{detected_style}. {Config.IMAGE_ASPECT_RATIO} aspect ratio. "
             f"Pure digital environment art, empty scenery, no buildings, no people, "
             f"no text, no borders. Cinematic wide shot. {digital_fix}"
         )
         
         if not self.loc_templates["bg_landscape"].exists():
-            self.ai_client.generate_image(
-                bg_prompt,
-                output_path=str(self.loc_templates["bg_landscape"]),
-                aspect_ratio=Config.IMAGE_ASPECT_RATIO
-            )
+            validation_rules = """
+            1. No Text Rule: The image MUST contain NO text, NO watermarks, NO speech bubbles, and NO UI elements.
+            2. Empty Environment Rule: The image MUST NOT contain any characters, humans, or animals.
+            """
+            attempt = 1
+            feedback = None
+            while attempt <= Config.MAX_RETRIES:
+                logger.info(f"Generating location style template (Attempt {attempt}/{Config.MAX_RETRIES})...")
+                current_prompt = bg_prompt
+                if feedback:
+                    current_prompt += f"\n\n[CRITICAL CORRECTION REQUIRED]\nThe previous attempt failed QA: '{feedback}'. You MUST fix this error."
+                
+                try:
+                    self.ai_client.generate_image(
+                        current_prompt,
+                        output_path=str(self.loc_templates["bg_landscape"]),
+                        aspect_ratio=Config.IMAGE_ASPECT_RATIO
+                    )
+                    
+                    qa_result = self.ai_client.validate_image(
+                        generated_image_path=str(self.loc_templates["bg_landscape"]),
+                        validation_rules=validation_rules,
+                        reference_images=[]
+                    )
+                    
+                    if qa_result.is_valid:
+                        logger.info("✅ Location style template passed QA validation!")
+                        break
+                    else:
+                        logger.warning(f"❌ Location style template validation failed: {qa_result.feedback}")
+                        feedback = qa_result.feedback
+                        attempt += 1
+                except Exception as e:
+                    logger.error(f"Failed to generate location style template: {e}")
+                    attempt += 1
 
 
 
@@ -312,8 +345,11 @@ class AssetManager:
         2. Background Rule: Clean background, no text, no captions.
         """
 
+        # IMPLEMENTED: Strict requirement for pure white background for concept isolation
         base_prompt = (
-            f"{view_type} of {char.name}, {char.description}. {style_prompt}. "
+            f"Character design sheet of {char.name}, {char.description}. {style_prompt}. "
+            f"Subject is isolated on a PURE WHITE background. Studio lighting. "
+            f"Zero background elements, completely blank white background. "
             f"{Config.IMAGE_ASPECT_RATIO} aspect ratio. Single character only. No text, no labels, no frames, "
             f"no UI, no infographics. Exactly one depiction of the character."
         )
@@ -404,7 +440,7 @@ class AssetManager:
             self.loc_dir.mkdir(parents=True, exist_ok=True)
             img_file = self.loc_dir / filename
             
-            # 16:9 Prompt
+            # Base Prompt
             digital_fix = Config.DIGITAL_FIX
             prompt = (
                 f"Digital landscape art of {loc.name}, {loc.description}. "

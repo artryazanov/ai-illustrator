@@ -26,7 +26,7 @@ def test_prepare_location_templates_only_bg(asset_manager):
         
         # Verify the call was for bg_landscape
         call_args = asset_manager.ai_client.generate_image.call_args
-        assert "bg_location_16_9.jpg" in str(call_args[1]['output_path'])
+        assert "bg_location.jpg" in str(call_args[1]['output_path'])
 
 def test_generate_location_assets_uses_only_bg_ref(asset_manager):
     asset_manager.ai_client.translate_to_english.return_value = "Forest"
@@ -42,5 +42,24 @@ def test_generate_location_assets_uses_only_bg_ref(asset_manager):
         # reference_images should contain ONLY bg_landscape
         refs = kwargs['reference_images']
         assert len(refs) == 1
-        assert "bg_location_16_9.jpg" in refs[0]['path']
+        assert "bg_location.jpg" in refs[0]['path']
         assert refs[0]['purpose'] == "Environment Style Template"
+
+def test_prepare_location_templates_qa_retry(asset_manager):
+    from app.core.models import ImageValidationResult
+    fail_res = ImageValidationResult(is_valid=False, feedback="Bad loc")
+    succ_res = ImageValidationResult(is_valid=True, feedback="")
+    asset_manager.ai_client.validate_image.side_effect = [fail_res, succ_res]
+    
+    with patch.object(Path, 'exists', return_value=False):
+        asset_manager.prepare_location_templates("style")
+        
+        assert asset_manager.ai_client.validate_image.call_count == 2
+        calls = asset_manager.ai_client.generate_image.call_args_list
+        assert "[CRITICAL CORRECTION REQUIRED]" in calls[1].args[0]
+
+def test_prepare_location_templates_exception(asset_manager):
+    asset_manager.ai_client.generate_image.side_effect = Exception("API Error")
+    with patch.object(Path, 'exists', return_value=False):
+        asset_manager.prepare_location_templates("style")
+        assert asset_manager.ai_client.generate_image.call_count == 3

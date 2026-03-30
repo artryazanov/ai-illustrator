@@ -72,11 +72,11 @@ class TestStoryIllustrator:
         
         # Check Character Ref
         assert kwargs['reference_images'][0]['path'] == "f.jpg"
-        assert "Character Style and Appearance Reference" in kwargs['reference_images'][0]['purpose']
+        assert kwargs['reference_images'][0]['purpose'] == "Character Appearance Reference for Alice"
         
         # Check Location Ref
         assert kwargs['reference_images'][1]['path'] == "loc_ref.jpg"
-        assert kwargs['reference_images'][1]['purpose'] == "Location Environment Reference"
+        assert kwargs['reference_images'][1]['purpose'] == "Environment Reference for Park"
 
         # Check Global Style Ref
         assert kwargs['reference_images'][2]['path'] == "/path/to/ref_f.jpg"

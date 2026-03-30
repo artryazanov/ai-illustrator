@@ -57,7 +57,7 @@ class TestGenAIClient:
         
         # Verify image_size configuration is passed correctly
         config_dump = kwargs['config'].model_dump()
-        assert config_dump['image_config']['image_size'] == "1K" # Default from Config
+        assert config_dump['image_config']['image_size'] == "512" # Changed from 1K
         
     def test_generate_text_with_schema(self, ai_client, mock_genai_client):
         from pydantic import BaseModel

@@ -128,38 +128,51 @@ class StoryIllustrator:
 
     def _generate_scene_image(self, scene: Scene, style_prompt: str, output_path: Path, highlight_prompt: Optional[str] = None, active_characters: Optional[List[str]] = None) -> Optional[str]:
         reference_images = []
+        anchors_text_blocks = []
+        
+        # Determine who is actually present in the frame
         chars_to_include = active_characters if active_characters is not None else scene.characters_present
         
-        # Concept Bleeding Fix: Limit references to the main active character if there are multiple
-        if chars_to_include and len(chars_to_include) > 1:
-            logger.info(f"Scene {scene.id} has multiple characters. Binding reference to just '{chars_to_include[0]}' to prevent concept bleeding.")
-            chars_to_include = [chars_to_include[0]]
-        
+        # 1. Collect data for ALL scene characters (Text + Image)
         for char_name in chars_to_include:
-            ref_path = self._select_character_ref(char_name, scene)
-            if ref_path:
-                reference_images.append({
-                    "path": ref_path,
-                    "purpose": f"Character Style and Appearance Reference for {char_name}",
-                    "usage": "Inherit the exact art style, line work, and color palette from this image. Maintain character design."
-                })
+            char_data = self.asset_manager.get_character_data(char_name)
+            if char_data:
+                # Add textual anchor
+                anchors_text_blocks.append(f"[CHARACTER '{char_name}']: {char_data.description}")
+                
+                # Attach visual reference
+                ref_path = self._select_character_ref(char_name, scene)
+                if ref_path:
+                    reference_images.append({
+                        "path": ref_path,
+                        "purpose": f"Character Appearance Reference for {char_name}",
+                        "usage": f"Strictly maintain the facial features, clothing, and body type of {char_name} exactly as shown in this image."
+                    })
 
+        # 2. Collect location data (Text + Image)
+        loc_data = self.asset_manager.get_location_data(scene.location_name)
+        if loc_data:
+            anchors_text_blocks.append(f"[LOCATION '{scene.location_name}']: {loc_data.description}")
+            
         loc_ref = self.asset_manager.get_location_ref(scene.location_name)
         if loc_ref:
             reference_images.append({
                 "path": loc_ref,
-                "purpose": "Location Environment Reference",
-                "usage": "This image is the absolute source of truth for visual style, brushwork, and medium."
+                "purpose": f"Environment Reference for {scene.location_name}",
+                "usage": "Use this as the absolute source of truth for the background, architecture, and environmental lighting."
             })
 
+        # 3. Attach global style
         style_ref = self.asset_manager.templates.get("ref_f")
         if style_ref and style_ref.exists():
             reference_images.append({
                 "path": str(style_ref),
                 "purpose": "Global Art Style Reference",
-                "usage": "This image is the absolute authority for the visual style."
+                "usage": "This image dictates the rendering style, brushwork, medium, and overall aesthetic."
             })
 
+        # Form final text blocks
+        anchors_text = "\n".join(anchors_text_blocks)
         visual_core = highlight_prompt if highlight_prompt else scene.visual_description
 
         validation_rules = """
@@ -167,11 +180,16 @@ class StoryIllustrator:
         2. No Text Rule: The image MUST contain NO text, NO watermarks, NO speech bubbles, and NO UI elements.
         """
 
+        # 4. Form structured prompt with strong context
         base_prompt = (
             f"{style_prompt}. **Single cinematic frame. One single cohesive image.**\n"
             f"**Follow the visual style of the attached reference images precisely.**\n"
-            f"**STRICTLY NO multi-panels, NO comic book layout, NO grid, NO split screen, NO storyboard, NO frames.**\n"
-            f"**NO text, NO captions, NO speech bubbles.**\n"
+            f"**STRICTLY NO multi-panels, NO comic book layout, NO grid, NO split screen.**\n"
+            f"**NO text, NO captions, NO speech bubbles.**\n\n"
+            f"--- MANDATORY VISUAL DETAILS ---\n"
+            f"You MUST faithfully represent the following entities in the scene using these exact descriptions:\n"
+            f"{anchors_text}\n"
+            f"--------------------------------\n\n"
             f"Scene context: {visual_core}\n"
             f"Action taking place: {scene.action_description}\n"
             f"Setting: {scene.location_name}, {scene.time_of_day}. Mood: {scene.mood}."
@@ -182,11 +200,11 @@ class StoryIllustrator:
         is_valid = False
 
         while attempt <= Config.MAX_RETRIES:
-            logger.info(f"Generating illustration for Scene {scene.id} (Attempt {attempt}/{Config.MAX_RETRIES})...")
+            logger.info(f"Generating illustration for Scene {scene.id} with {len(reference_images)} refs (Attempt {attempt}/{Config.MAX_RETRIES})...")
             
             current_prompt = base_prompt + f"\n{Config.DIGITAL_FIX}"
             if feedback:
-                current_prompt += f"\n\n[CRITICAL CORRECTION REQUIRED]\nThe previous attempt failed QA: '{feedback}'. You MUST fix this error."
+                current_prompt += f"\n\n[CRITICAL CORRECTION REQUIRED]\nThe previous attempt failed QA: '{feedback}'. You MUST fix this error in this generation."
 
             try:
                 self.ai_client.generate_image(

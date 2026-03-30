@@ -12,19 +12,21 @@ AI Illustrator is a powerful tool designed to automatically generate consistent,
 
 -   **Automatic Style Detection**: Analyzes the story text to determine the most appropriate art style and generates consistent illustrations based on that style.
 -   **Character Consistency**:
-    -   Extracts character descriptions and generates reference character images (Full Body, 16:9).
+    -   Extracts character descriptions and generates reference character images (Full Body).
     -   Maintains a persistent catalog of characters in `output/data.json` to ensure the same character looks consistent throughout the story.
+    -   Uses **Clean References** pattern: Character reference cards are generated strictly on isolated PURE WHITE backgrounds to prevent environmental bleeding during scene integration.
     -   Uses reference images (multimodal generation) to keep character appearance stable across different scenes.
 -   **Location Consistency**:
-    -   Generates and caches location reference images (16:9 cinematic shots).
+    -   Generates and caches location reference images (Cinematic style shots).
     -   Maintains a location catalog in `output/data.json` to reuse settings.
 -   **Cinematic Scene Generation**:
     -   Splits the story into logical scenes securely using Semantic Chunking (preserving context across chunks).
     -   Parallelizes scene rendering via ThreadPool for faster generation.
-    -   Generates a single, cohesive cinematic frame for each scene (16:9 aspect ratio).
-    -   Mitigates "Concept Bleeding" in dense scenes by locking reference images dynamically.
+    -   Generates a single, cohesive cinematic frame for each scene (Configurable aspect ratio).
+    -   Utilizes **Textual Anchoring** by explicitly mapping multi-character references via strictly structured `MANDATORY VISUAL DETAILS` blocks to prevent the model from confusing outfits or features between characters.
 -   **LLM-as-a-Judge QA Loop**:
     -   Natively validates generated images against specific rulesets. If the model hallucinates comic panels, multiple angles, or gibberish text, a strict validation prompt instantly triggers a constrained re-generation block utilizing feedback.
+    -   Applies QA validation to foundational **Style Templates** to ensure the global aesthetic is completely free of text or unwanted artifacts before bulk generation begins.
 -   **Native Structured Outputs**:
     -   Replaces brittle markdown-JSON parsing with 100% reliable Google GenAI `response_schema` support mapped directly to Pydantic models.
 -   **API Resilience**:
@@ -113,9 +115,8 @@ output/
 │   └── 1_sunny_park_scene.jpeg
 ├── data.json               # Unified manifest (Style, Characters, Locations, Illustrations)
 └── style_templates/        # Generated style base images
-    ├── bg_fullbody.jpg                # 16:9 solid background for characters
-    ├── style_reference_fullbody.jpg   # 16:9 character style reference
-    └── bg_location_16_9.jpg           # 16:9 neutral background for locations
+    ├── style_reference_fullbody.jpg   # Dynamic character style reference
+    └── bg_location.jpg                # Dynamic neutral background for locations
 ```
 
 ### `data.json` Structure

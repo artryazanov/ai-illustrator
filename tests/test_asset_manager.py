@@ -31,8 +31,8 @@ class TestAssetManager:
             asset_manager.prepare_style_templates("anime")
             
             # Check if generate_image was called for templates
-            # bg_f, ref_f = 2 calls (portrait ones removed)
-            assert asset_manager.ai_client.generate_image.call_count >= 2
+            # ref_f = 1 call (bg_f removed)
+            assert asset_manager.ai_client.generate_image.call_count >= 1
 
     def test_load_data(self, asset_manager):
         # Mock data.json content

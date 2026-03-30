@@ -11,7 +11,7 @@ class Config:
     # Models as requested by user
     TEXT_MODEL_NAME = os.getenv("TEXT_MODEL_NAME", "gemini-3.1-pro-preview")
     IMAGE_MODEL_NAME = os.getenv("IMAGE_MODEL_NAME", "gemini-3.1-flash-image-preview")
-    IMAGE_RESOLUTION = os.getenv("IMAGE_RESOLUTION", "1K")
+    IMAGE_RESOLUTION = os.getenv("IMAGE_RESOLUTION", "512")
     IMAGE_ASPECT_RATIO = os.getenv("IMAGE_ASPECT_RATIO", "1:1")
     
     # Validation model for QA logic
