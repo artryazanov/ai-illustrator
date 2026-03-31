@@ -80,10 +80,18 @@ def main(text_file, style_prompt, output_dir):
         # Extract Characters in this scene
         chars_in_scene = analyzer.extract_characters(scene_text)
         asset_manager.generate_character_assets(chars_in_scene, detected_style)
+        
+        # Synchronize scene characters with actual names from the catalog
+        if chars_in_scene:
+            scene.characters_present = [char.name for char in chars_in_scene]
 
         # Extract Locations in this scene
         locs_in_scene = analyzer.extract_locations(scene_text)
         asset_manager.generate_location_assets(locs_in_scene, detected_style)
+        
+        # Synchronize scene location with the actual location from the catalog
+        if locs_in_scene:
+            scene.location_name = locs_in_scene[0].name
 
         # Generate Illustration
         illustrator.illustrate_scenes([scene], detected_style)

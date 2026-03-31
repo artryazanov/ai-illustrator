@@ -55,7 +55,7 @@ class TestStoryAnalyzer:
         assert scenes[0].id == 1 
 
     def test_extract_characters(self, analyzer):
-        char_data = [{"name": "Alice", "description": "Blonde girl", "original_name": "Alice"}]
+        char_data = [{"name": "Alice", "description": "Blonde girl", "original_name": "Alice_Rus"}]
         analyzer.ai_client.generate_text.return_value = json.dumps(char_data)
         
         chars = analyzer.extract_characters("text")
@@ -63,9 +63,10 @@ class TestStoryAnalyzer:
         assert len(chars) == 1
         assert isinstance(chars[0], Character)
         assert chars[0].name == "Alice"
+        assert chars[0].original_name == "Alice_Rus"
 
     def test_extract_locations(self, analyzer):
-        loc_data = [{"name": "Park", "description": "Green trees", "original_name": "Park"}]
+        loc_data = [{"name": "Park", "description": "Green trees", "original_name": "Park_Rus"}]
         analyzer.ai_client.generate_text.return_value = json.dumps(loc_data)
         
         locs = analyzer.extract_locations("text")
@@ -73,6 +74,7 @@ class TestStoryAnalyzer:
         assert len(locs) == 1
         assert isinstance(locs[0], Location)
         assert locs[0].name == "Park"
+        assert locs[0].original_name == "Park_Rus"
 
     def test_extract_scenes_failure(self, analyzer):
         analyzer.ai_client.generate_text.return_value = "Not JSON"

@@ -138,6 +138,10 @@ class StoryAnalyzer:
         Analyze the text and identify key characters.
         Create a **HIGHLY DETAILED** Visual Portrait for each.
         
+        IMPORTANT RULES:
+        - Populate the 'name' field with a clear English translation of the character's name.
+        - Populate the 'original_name' field EXACTLY as the character is named in the original text language (e.g., in Russian).
+        
         You must provide a comprehensive physical description including:
         - **Face**: Eye color/shape, nose, mouth, jawline, skin texture/tone, facial hair, makeup.
         - **Hair**: Exact color, style, length, texture.
@@ -169,6 +173,10 @@ class StoryAnalyzer:
         prompt = f"""
         Identify main locations.
         Provide detailed visual description (Architecture, Mood, Colors, Lighting).
+        
+        IMPORTANT RULES:
+        - Populate the 'name' field with a clear English translation of the location.
+        - Populate the 'original_name' field EXACTLY as the location is named in the original text language.
         """
 
         try:
