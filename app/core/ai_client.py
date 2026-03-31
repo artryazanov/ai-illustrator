@@ -237,11 +237,14 @@ class GenAIClient:
         Return the validation JSON. If it fails, explain EXACTLY what is wrong so the artist can fix it in the next attempt.
         """
         
+        if reference_images:
+            prompt += "\n\nAlso compare it against these reference images to ensure character/style consistency."
+            prompt += "\n\n[IMPORTANT CONTEXT]: You will receive multiple images. The FIRST image is the generated illustration you must evaluate. The SUBSEQUENT images are merely references provided for style consistency. DO NOT apply the structural rules (like character counting or background checks) to the reference images. Only evaluate the FIRST image."
+
         try:
             contents = [prompt, Image.open(generated_image_path)]
             
             if reference_images:
-                prompt += "\n\nAlso compare it against these reference images to ensure character/style consistency."
                 for ref in reference_images:
                     if ref.get('path') and os.path.exists(ref.get('path')):
                         contents.append(Image.open(ref.get('path')))

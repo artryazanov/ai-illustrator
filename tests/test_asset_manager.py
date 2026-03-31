@@ -218,6 +218,10 @@ class TestAssetManager:
         result = asset_manager._generate_single_card(char, "style", out)
         assert result is True
         assert asset_manager.ai_client.validate_image.call_count == 2
+        
+        args, kwargs = asset_manager.ai_client.validate_image.call_args
+        assert kwargs.get("reference_images") == []
+        
         args, kwargs = asset_manager.ai_client.generate_image.call_args
         assert "[CRITICAL CORRECTION REQUIRED]" in kwargs['prompt']
 

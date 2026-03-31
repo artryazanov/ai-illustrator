@@ -217,7 +217,7 @@ class StoryIllustrator:
                 qa_result = self.ai_client.validate_image(
                     generated_image_path=str(output_path),
                     validation_rules=validation_rules,
-                    reference_images=reference_images 
+                    reference_images=[]
                 )
 
                 if qa_result.is_valid:

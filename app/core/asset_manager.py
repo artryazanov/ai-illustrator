@@ -379,7 +379,7 @@ class AssetManager:
                 qa_result = self.ai_client.validate_image(
                     generated_image_path=str(output_file),
                     validation_rules=validation_rules,
-                    reference_images=[{"path": str(style_ref)}]
+                    reference_images=[]
                 )
                 
                 if qa_result.is_valid:

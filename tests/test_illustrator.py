@@ -157,6 +157,9 @@ class TestStoryIllustrator:
         
         assert illustrator.ai_client.generate_image.call_count == 2
         assert illustrator.ai_client.validate_image.call_count == 2
+        
+        args, kwargs = illustrator.ai_client.validate_image.call_args
+        assert kwargs.get("reference_images") == []
 
     def test_generate_scene_image_max_retries(self, illustrator, tmp_path):
         from app.core.models import ImageValidationResult
