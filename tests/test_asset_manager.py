@@ -223,7 +223,7 @@ class TestAssetManager:
         assert kwargs.get("reference_images") == []
         
         args, kwargs = asset_manager.ai_client.generate_image.call_args
-        assert "[CRITICAL CORRECTION REQUIRED]" in kwargs['prompt']
+        assert "[CRITICAL CORRECTIONS REQUIRED]" in kwargs['prompt']
 
     def test_generate_single_card_max_retries_fallback(self, asset_manager, tmp_path):
         from app.core.models import ImageValidationResult
@@ -240,7 +240,7 @@ class TestAssetManager:
         
         result = asset_manager._generate_single_card(char, "style", out)
         assert result is True 
-        assert asset_manager.ai_client.validate_image.call_count == 3
+        assert asset_manager.ai_client.validate_image.call_count == 4
         
     def test_generate_location_assets_no_original_name(self, asset_manager):
         loc = Location(name="Loc", description="Desc")

@@ -87,11 +87,27 @@ def main(text_file, style_prompt, output_dir):
 
         # Extract Locations in this scene
         locs_in_scene = analyzer.extract_locations(scene_text)
-        asset_manager.generate_location_assets(locs_in_scene, detected_style)
         
-        # Synchronize scene location with the actual location from the catalog
         if locs_in_scene:
-            scene.location_name = locs_in_scene[0].name
+            # The scene model already has a location_name assigned by the AI. Find the matching location details.
+            primary_loc = None
+            for loc in locs_in_scene:
+                if loc.name.lower() == scene.location_name.lower():
+                    primary_loc = loc
+                    break
+                    
+            if not primary_loc: # Failsafe for partial matches
+                for loc in locs_in_scene:
+                    if loc.name.lower() in scene.location_name.lower() or scene.location_name.lower() in loc.name.lower():
+                        primary_loc = loc
+                        break
+            
+            if not primary_loc: # Absolute fallback
+                primary_loc = locs_in_scene[0]
+
+            asset_manager.generate_location_assets([primary_loc], detected_style)
+            # Synchronize scene location with the actual location from the catalog
+            scene.location_name = primary_loc.name
 
         # Generate Illustration
         illustrator.illustrate_scenes([scene], detected_style)

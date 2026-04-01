@@ -58,13 +58,15 @@ class AssetManager:
             2. Background Rule: Clean, pure white background, no environment details, no text.
             """
             attempt = 1
-            feedback = None
+            accumulated_feedbacks = []
             while attempt <= Config.MAX_RETRIES:
                 logger.info(f"Generating global character style template (Attempt {attempt}/{Config.MAX_RETRIES})...")
                 current_prompt = f"{style_ref_prompt}. Full body shot, standing."
-                if feedback:
-                    safe_feedback = self.ai_client.sanitize_prompt_feedback(feedback)
-                    current_prompt += f"\n\n[CRITICAL CORRECTION REQUIRED]\n{safe_feedback}. You MUST fix this format."
+                if accumulated_feedbacks:
+                    current_prompt += "\n\n[CRITICAL CORRECTIONS REQUIRED]\nYou previously made errors. You MUST apply ALL of the following corrections:\n"
+                    for i, fb in enumerate(accumulated_feedbacks, 1):
+                        current_prompt += f"{i}. {fb}\n"
+                    current_prompt += "\nYou MUST fix this format."
                 
                 try:
                     self.ai_client.generate_image(
@@ -85,7 +87,8 @@ class AssetManager:
                         break
                     else:
                         logger.warning(f"❌ Global character style template validation failed: {qa_result.feedback}")
-                        feedback = qa_result.feedback
+                        safe_feedback = self.ai_client.sanitize_prompt_feedback(qa_result.feedback)
+                        accumulated_feedbacks.append(safe_feedback)
                         attempt += 1
                 except Exception as e:
                     logger.error(f"Failed to generate global character style template: {e}")
@@ -111,13 +114,15 @@ class AssetManager:
             3. No Frame Rule: The image MUST be a full-bleed picture extending edge-to-edge. It MUST NOT have any borders, frames, white margins, passe-partout, or split screens. If there is any visible frame or border around the image, it MUST fail.
             """
             attempt = 1
-            feedback = None
+            accumulated_feedbacks = []
             while attempt <= Config.MAX_RETRIES:
                 logger.info(f"Generating location style template (Attempt {attempt}/{Config.MAX_RETRIES})...")
                 current_prompt = bg_prompt
-                if feedback:
-                    safe_feedback = self.ai_client.sanitize_prompt_feedback(feedback)
-                    current_prompt += f"\n\n[CRITICAL CORRECTION REQUIRED]\n{safe_feedback}. You MUST fix this format."
+                if accumulated_feedbacks:
+                    current_prompt += "\n\n[CRITICAL CORRECTIONS REQUIRED]\nYou previously made errors. You MUST apply ALL of the following corrections:\n"
+                    for i, fb in enumerate(accumulated_feedbacks, 1):
+                        current_prompt += f"{i}. {fb}\n"
+                    current_prompt += "\nYou MUST fix this format."
                 
                 try:
                     self.ai_client.generate_image(
@@ -137,7 +142,8 @@ class AssetManager:
                         break
                     else:
                         logger.warning(f"❌ Location style template validation failed: {qa_result.feedback}")
-                        feedback = qa_result.feedback
+                        safe_feedback = self.ai_client.sanitize_prompt_feedback(qa_result.feedback)
+                        accumulated_feedbacks.append(safe_feedback)
                         attempt += 1
                 except Exception as e:
                     logger.error(f"Failed to generate location style template: {e}")
@@ -346,7 +352,7 @@ class AssetManager:
         validation_rules = f"""
         1. Character Rule: There must be EXACTLY ONE character. No twins, no multiple angles of the same person.
         2. Background Rule: Clean background, no text, no captions.
-        3. Anatomy Rule: Verify the character's anatomy exactly matches this description: "{char.description}". 
+        3. Anatomy Rule: Verify the character broadly aligns with this description: "{char.description}". Do NOT fail the image for minor added artistic details.
         """
 
         # IMPLEMENTED: Strict requirement for pure white background for concept isolation
@@ -359,18 +365,17 @@ class AssetManager:
         )
 
         attempt = 1
-        feedback = None
+        accumulated_feedbacks = []
 
         while attempt <= Config.MAX_RETRIES:
             logger.info(f"Generating full body for {char.name} (Attempt {attempt}/{Config.MAX_RETRIES})...")
             
             current_prompt = base_prompt + f"\n{digital_fix}"
-            if feedback:
-                safe_feedback = self.ai_client.sanitize_prompt_feedback(feedback)
-                current_prompt += (
-                    f"\n\n[CRITICAL CORRECTION REQUIRED]\n{safe_feedback}. "
-                    f"DO NOT change the art style from the reference image."
-                )
+            if accumulated_feedbacks:
+                current_prompt += "\n\n[CRITICAL CORRECTIONS REQUIRED]\nYou previously made errors. You MUST apply ALL of the following corrections:\n"
+                for i, fb in enumerate(accumulated_feedbacks, 1):
+                    current_prompt += f"{i}. {fb}\n"
+                current_prompt += "\nDO NOT change the art style from the reference image."
 
             try:
                 self.ai_client.generate_image(
@@ -397,7 +402,8 @@ class AssetManager:
                     return True
                 else:
                     logger.warning(f"❌ Character {char.name} validation failed: {qa_result.feedback}")
-                    feedback = qa_result.feedback
+                    safe_feedback = self.ai_client.sanitize_prompt_feedback(qa_result.feedback)
+                    accumulated_feedbacks.append(safe_feedback)
                     attempt += 1
             except Exception as e:
                 logger.error(f"Failed to generate full body for {char.name} on attempt {attempt}: {e}")
@@ -466,18 +472,17 @@ class AssetManager:
             """
 
             attempt = 1
-            feedback = None
+            accumulated_feedbacks = []
 
             while attempt <= Config.MAX_RETRIES:
                 logger.info(f"Generating location {loc.name} (Attempt {attempt}/{Config.MAX_RETRIES})...")
                 
                 current_prompt = base_prompt
-                if feedback:
-                    safe_feedback = self.ai_client.sanitize_prompt_feedback(feedback)
-                    current_prompt += (
-                        f"\n\n[CRITICAL CORRECTION REQUIRED]\n{safe_feedback}. "
-                        f"DO NOT change the art style from the reference image."
-                    )
+                if accumulated_feedbacks:
+                    current_prompt += "\n\n[CRITICAL CORRECTIONS REQUIRED]\nYou previously made errors. You MUST apply ALL of the following corrections:\n"
+                    for i, fb in enumerate(accumulated_feedbacks, 1):
+                        current_prompt += f"{i}. {fb}\n"
+                    current_prompt += "\nDO NOT change the art style from the reference image."
 
                 try:
                     self.ai_client.generate_image(
@@ -509,7 +514,8 @@ class AssetManager:
                         break
                     else:
                         logger.warning(f"❌ Location {loc.name} validation failed: {qa_result.feedback}")
-                        feedback = qa_result.feedback
+                        safe_feedback = self.ai_client.sanitize_prompt_feedback(qa_result.feedback)
+                        accumulated_feedbacks.append(safe_feedback)
                         attempt += 1
                         
                 except Exception as e:

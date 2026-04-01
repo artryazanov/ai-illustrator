@@ -41,11 +41,11 @@ def test_prepare_style_templates_qa_retry(asset_manager):
         assert asset_manager.ai_client.validate_image.call_count == 2
         calls = asset_manager.ai_client.generate_image.call_args_list
         # Second call should have feedback in prompt
-        assert "[CRITICAL CORRECTION REQUIRED]" in calls[1].args[0]
+        assert "[CRITICAL CORRECTIONS REQUIRED]" in calls[1].args[0]
 
 def test_prepare_style_templates_exception(asset_manager):
     asset_manager.ai_client.generate_image.side_effect = Exception("API error")
     with patch.object(Path, 'exists', return_value=False):
         asset_manager.prepare_style_templates("anime")
         # Should not crash, just hit max retries
-        assert asset_manager.ai_client.generate_image.call_count == 3
+        assert asset_manager.ai_client.generate_image.call_count == 4

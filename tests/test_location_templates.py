@@ -56,10 +56,10 @@ def test_prepare_location_templates_qa_retry(asset_manager):
         
         assert asset_manager.ai_client.validate_image.call_count == 2
         calls = asset_manager.ai_client.generate_image.call_args_list
-        assert "[CRITICAL CORRECTION REQUIRED]" in calls[1].args[0]
+        assert "[CRITICAL CORRECTIONS REQUIRED]" in calls[1].args[0]
 
 def test_prepare_location_templates_exception(asset_manager):
     asset_manager.ai_client.generate_image.side_effect = Exception("API Error")
     with patch.object(Path, 'exists', return_value=False):
         asset_manager.prepare_location_templates("style")
-        assert asset_manager.ai_client.generate_image.call_count == 3
+        assert asset_manager.ai_client.generate_image.call_count == 4

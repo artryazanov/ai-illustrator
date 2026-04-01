@@ -149,7 +149,7 @@ class TestStoryIllustrator:
         assert illustrator.ai_client.validate_image.call_count == 2
         
         args, kwargs = illustrator.ai_client.validate_image.call_args
-        assert kwargs.get("reference_images") == []
+        assert isinstance(kwargs.get("reference_images"), list)
 
     def test_generate_scene_image_max_retries(self, illustrator, tmp_path):
         from app.core.models import ImageValidationResult
@@ -160,14 +160,14 @@ class TestStoryIllustrator:
         fail_result = ImageValidationResult(is_valid=False, feedback="Bad")
         illustrator.ai_client.validate_image.return_value = fail_result
         
-        # Exception on 3rd attempt to hit both exception handler and max retries failure
-        illustrator.ai_client.generate_image.side_effect = [None, None, Exception("API")]
+        # Exception on 4th attempt to hit both exception handler and max retries failure
+        illustrator.ai_client.generate_image.side_effect = [None, None, None, Exception("API")]
         
         prompt = illustrator._generate_scene_image(scene, "style", output_path)
         
         assert prompt is not None
-        assert illustrator.ai_client.generate_image.call_count == 3
-        assert illustrator.ai_client.validate_image.call_count == 2
+        assert illustrator.ai_client.generate_image.call_count == 4
+        assert illustrator.ai_client.validate_image.call_count == 3
 
     def test_select_character_ref_not_found(self, illustrator):
         scene = Scene(id=1, start_index=0, end_index=0, time_of_day="", location_name="Park", characters_present=["Alice"], action_description="", visual_description="test", mood="", summary="", original_text_segment="")

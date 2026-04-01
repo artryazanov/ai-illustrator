@@ -18,7 +18,7 @@ class Config:
     VALIDATOR_MODEL_NAME = os.getenv("VALIDATOR_MODEL_NAME", "gemini-3.1-pro-preview")
     
     # QA Loop Settings
-    MAX_RETRIES = int(os.getenv("MAX_RETRIES", "3"))
+    MAX_RETRIES = int(os.getenv("MAX_RETRIES", "4"))
 
     # Fallback to known working models if the preview ones are hypothetical for this environment
     # Note: Logic to switch can be added here if needed, but we stick to requirements.

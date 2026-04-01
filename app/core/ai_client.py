@@ -257,7 +257,12 @@ class GenAIClient:
         
         if reference_images:
             prompt += "\n\nAlso compare it against these reference images to ensure character/style consistency."
-            prompt += "\n\n[IMPORTANT CONTEXT]: You will receive multiple images. The FIRST image is the generated illustration you must evaluate. The SUBSEQUENT images are merely references provided for style consistency. DO NOT apply the structural rules (like character counting or background checks) to the reference images. Only evaluate the FIRST image."
+            prompt += "\n\n[IMPORTANT CONTEXT]: You will receive multiple images. The FIRST image is the generated illustration you must evaluate. The SUBSEQUENT images are merely references provided for character and style consistency. DO NOT apply the structural rules (like character counting or background checks) to the reference images. Only evaluate the FIRST image."
+            prompt += "\n\nReference Images Context (These match the SUBSEQUENT images in order):"
+            for index, ref in enumerate(reference_images):
+                purpose = ref.get('purpose', 'Reference')
+                usage = ref.get('usage', 'Use as visual reference.')
+                prompt += f"\n- Reference Image {index + 1}:\n  Purpose: {purpose}\n  Instruction: {usage}"
 
         try:
             contents = [prompt, Image.open(generated_image_path)]

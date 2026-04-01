@@ -19,6 +19,7 @@ AI Illustrator is a powerful tool designed to automatically generate consistent,
 -   **Location Consistency**:
     -   Generates and caches location reference images (Cinematic style shots).
     -   Maintains a location catalog in `output/data.json` to reuse settings.
+    -   **Quota Optimization**: Smart location matching ensures the API only generates environment assets for locations strictly active in the story's scenes, skipping unused background descriptions.
 -   **Cinematic Scene Generation**:
     -   Splits the story into logical scenes securely using Semantic Chunking (preserving context across chunks).
     -   Parallelizes scene rendering via ThreadPool for faster generation.
@@ -27,6 +28,7 @@ AI Illustrator is a powerful tool designed to automatically generate consistent,
 -   **LLM-as-a-Judge QA Loop & Self-Correction**:
     -   Natively validates generated images against strict structural rulesets (e.g., Single Frame, Anatomy constraints, No Text, No Borders).
     -   If an image fails (e.g., multiple angles, extra limbs, or framing borders), a strict validation prompt instantly triggers a constrained re-generation block.
+    -   **Intelligent Style Editor**: Implements programmatic AI QA to validate text style descriptions, preventing false-positive flaggings (like confusing the banned word "text" inside the allowed word "texture").
     -   **Context Preservation**: Injected feedback heavily anchors the model to retain the original character identity and art style while exclusively fixing the noted structural error.
     -   **Safety Filter Bypass**: Automatically sanitizes raw QA failures through an intermediate "Prompt Engineer" LLM pass. This translates negative feedback (like "remove watermark/signature") into positive, visually clear prompts that safely bypass image generator block-filters.
     -   Applies QA validation uniformly across **Style Templates**, **Characters**, **Locations**, and **Scenes** to maintain a cohesive, artifact-free narrative.
@@ -35,7 +37,7 @@ AI Illustrator is a powerful tool designed to automatically generate consistent,
 -   **API Resilience**:
     -   Fully handles API rate limits, timeouts, and payload failures using exponential backoff retry mechanisms (`tenacity`).
 -   **Docker Support**: Fully containerized for easy deployment and execution.
--   **Comprehensive Testing**: Achieved **100% test coverage** under continuous integration with Github Actions & Codecov.
+-   **Comprehensive Testing**: High test coverage under continuous integration with Github Actions & Codecov.
 
 ## 🛠️ Prerequisites
 
@@ -63,6 +65,7 @@ TEXT_MODEL_NAME=gemini-3.1-pro-preview # or compatible
 IMAGE_MODEL_NAME=gemini-3.1-flash-image-preview # or specific imagen model
 IMAGE_RESOLUTION=1K # Options: 512, 1K, 2K, 4K
 IMAGE_ASPECT_RATIO=1:1 # Options: 1:1, 1:4, 1:8, 2:3, 3:2, 3:4, 4:1, 4:3, 4:5, 5:4, 8:1, 9:16, 16:9, 21:9
+MAX_RETRIES=4 # Maximum generation attempts during QA loops
 ```
 
 ### 3. Running with Docker (Recommended)

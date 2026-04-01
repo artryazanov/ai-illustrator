@@ -169,6 +169,7 @@ class StoryIllustrator:
         validation_rules = """
         1. Single Frame Rule: The image MUST be a single cinematic shot. NO split screens, NO comic book panels, NO grid layouts, NO borders.
         2. No Text Rule: The image MUST contain NO text, NO watermarks, NO speech bubbles, and NO UI elements.
+        3. Character Consistency Rule: STRICTLY compare the characters in the generated image with the provided reference images and text descriptions. The characters MUST perfectly match their original appearance.
         """
 
         # 4. Form structured prompt with strong context
@@ -187,19 +188,21 @@ class StoryIllustrator:
         )
 
         attempt = 1
-        feedback = None
+        accumulated_feedbacks = []
         is_valid = False
 
         while attempt <= Config.MAX_RETRIES:
             logger.info(f"Generating illustration for Scene {scene.id} with {len(reference_images)} refs (Attempt {attempt}/{Config.MAX_RETRIES})...")
             
             current_prompt = base_prompt + f"\n{Config.DIGITAL_FIX}"
-            if feedback:
-                safe_feedback = self.ai_client.sanitize_prompt_feedback(feedback)
+            if accumulated_feedbacks:
+                current_prompt += "\n\n[CRITICAL CORRECTIONS REQUIRED]\nYou previously made errors. You MUST apply ALL of the following corrections:\n"
+                for i, fb in enumerate(accumulated_feedbacks, 1):
+                    current_prompt += f"{i}. {fb}\n"
+                
                 current_prompt += (
-                    f"\n\n[CRITICAL CORRECTION REQUIRED]\n{safe_feedback}. "
-                    f"IMPORTANT: While applying the correction, you MUST strictly maintain the exact character identity, "
-                    f"clothing, and face from the provided reference images. Do not invent a new character or change the style!"
+                    "\nIMPORTANT: While applying these corrections, you MUST strictly maintain the exact character identity, "
+                    "clothing, and face from the provided reference images. Do not invent a new character or change the style!"
                 )
 
             try:
@@ -213,7 +216,7 @@ class StoryIllustrator:
                 qa_result = self.ai_client.validate_image(
                     generated_image_path=str(output_path),
                     validation_rules=validation_rules,
-                    reference_images=[]
+                    reference_images=reference_images
                 )
 
                 if qa_result.is_valid:
@@ -222,7 +225,8 @@ class StoryIllustrator:
                     return current_prompt
                 else:
                     logger.warning(f"❌ Scene {scene.id} validation failed: {qa_result.feedback}")
-                    feedback = qa_result.feedback
+                    safe_feedback = self.ai_client.sanitize_prompt_feedback(qa_result.feedback)
+                    accumulated_feedbacks.append(safe_feedback)
                     attempt += 1
 
             except Exception as e:

@@ -51,7 +51,7 @@ class StoryAnalyzer:
         """
         Acts as Art Director to extract system style prompt.
         """
-        prompt = f"""
+        base_prompt = f"""
         Role: Art Director.
         Analyze the following text from a story and determine the most appropriate visual art style for illustrations.
         Consider the tone, genre, and setting.
@@ -63,9 +63,66 @@ class StoryAnalyzer:
 
         Output a detailed style description string. 
         Focus on medium, lighting, color palette, and mood.
+        
+        CRITICAL RULE: The generated images MUST be single, full-bleed, edge-to-edge cinematic shots. 
+        Therefore, your style description MUST NOT include words like "borders", "frames", "margins", "passe-partout", "text", or "panels". Do NOT request any decorative borders or framing elements.
+        
         Example output: "Graphic novel style, high contrast, chiaroscuro lighting, black and white with red accents, sharp ink lines, dramatic shadows, Frank Miller aesthetic, gritty texture."
         """
-        return self.ai_client.generate_text(prompt)
+        
+        attempt = 1
+        accumulated_feedbacks = []
+        max_retries = 3
+        
+        while attempt <= max_retries:
+            current_prompt = base_prompt
+            if accumulated_feedbacks:
+                current_prompt += "\n\n[CRITICAL CORRECTIONS REQUIRED]\nYou previously made errors. You MUST apply ALL of the following corrections:\n"
+                for i, fb in enumerate(accumulated_feedbacks, 1):
+                    current_prompt += f"{i}. {fb}\n"
+                    
+            style_desc = self.ai_client.generate_text(current_prompt).strip()
+            
+            logger.info(f"Generated Style (Attempt {attempt}):\n{style_desc}")
+            
+            # AI QA check
+            qa_prompt = f"""
+            Analyze the following art style description:
+            "{style_desc}"
+            
+            Your task: Determine if this description explicitly asks the artist to draw structural boundary elements (like borders, frames, margins, passe-partouts, panels, split screens) OR to write explicit text/words/letters/watermarks on the image.
+            
+            Return ONLY a JSON object:
+            {{
+                "is_valid": bool, // True if the style is clean, False if it explicitly requests drawing frames/borders or writing text.
+                "feedback": "string" // Empty if valid. If invalid, explain what forbidden element was requested.
+            }}
+            """
+            
+            qa_response = self.ai_client.generate_text(qa_prompt).strip()
+            
+            is_valid = True
+            feedback = ""
+            try:
+                clean_json = qa_response.replace("```json", "").replace("```", "").strip()
+                import json
+                qa_data = json.loads(clean_json)
+                is_valid = qa_data.get("is_valid", True)
+                feedback = qa_data.get("feedback", "")
+            except Exception as e:
+                logger.warning(f"Failed to parse Style QA response: {e}. Passing by default.")
+            
+            if is_valid:
+                logger.info("✅ Style passed QA validation!")
+                return style_desc
+                
+            logger.warning(f"❌ Style QA failed. Reason: {feedback}")
+            error_msg = f"Your last response was rejected because: {feedback}. You are strictly forbidden from including structural elements like frames, borders, or text. Completely remove them."
+            accumulated_feedbacks.append(error_msg)
+            attempt += 1
+            
+        logger.warning(f"⚠️ Max retries reached for style generation.")
+        return style_desc
 
     def extract_scenes(self, text: str) -> List[Scene]:
         """
@@ -150,8 +207,9 @@ class StoryAnalyzer:
         - **Distinctive Features**: Scars, tattoos, jewelry, glasses, weapons, props.
         
         The description must be vivid and specific enough for an artist to paint an exact replica without guessing. 
+        If the text does not explicitly detail a character's physical appearance (e.g., "an old man"), you MUST invent a highly cohesive, culturally and contextually appropriate visual appearance for them. Do NOT skip a character just because the text lacks visual details!
         Avoid abstract personality traits (e.g., "kind", "brave") unless they manifest visually (e.g., "kind eyes", "confident stance").
-        Focus ONLY on visual traits.
+        Focus ONLY on the character's physical visual traits. DO NOT describe their environment, background, or current situational action. The character must be described as if standing isolated in an empty white studio.
         """
 
         try:
