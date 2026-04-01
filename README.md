@@ -24,9 +24,12 @@ AI Illustrator is a powerful tool designed to automatically generate consistent,
     -   Parallelizes scene rendering via ThreadPool for faster generation.
     -   Generates a single, cohesive cinematic frame for each scene (Configurable aspect ratio).
     -   Utilizes **Textual Anchoring** by explicitly mapping multi-character references via strictly structured `MANDATORY VISUAL DETAILS` blocks to prevent the model from confusing outfits or features between characters.
--   **LLM-as-a-Judge QA Loop**:
-    -   Natively validates generated images against specific rulesets. If the model hallucinates comic panels, multiple angles, or gibberish text, a strict validation prompt instantly triggers a constrained re-generation block utilizing feedback.
-    -   Applies QA validation to foundational **Style Templates** to ensure the global aesthetic is completely free of text or unwanted artifacts before bulk generation begins.
+-   **LLM-as-a-Judge QA Loop & Self-Correction**:
+    -   Natively validates generated images against strict structural rulesets (e.g., Single Frame, Anatomy constraints, No Text, No Borders).
+    -   If an image fails (e.g., multiple angles, extra limbs, or framing borders), a strict validation prompt instantly triggers a constrained re-generation block.
+    -   **Context Preservation**: Injected feedback heavily anchors the model to retain the original character identity and art style while exclusively fixing the noted structural error.
+    -   **Safety Filter Bypass**: Automatically sanitizes raw QA failures through an intermediate "Prompt Engineer" LLM pass. This translates negative feedback (like "remove watermark/signature") into positive, visually clear prompts that safely bypass image generator block-filters.
+    -   Applies QA validation uniformly across **Style Templates**, **Characters**, **Locations**, and **Scenes** to maintain a cohesive, artifact-free narrative.
 -   **Native Structured Outputs**:
     -   Replaces brittle markdown-JSON parsing with 100% reliable Google GenAI `response_schema` support mapped directly to Pydantic models.
 -   **API Resilience**:

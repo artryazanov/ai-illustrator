@@ -36,12 +36,6 @@ class TestStoryIllustrator:
         illustrator.asset_manager.get_location_data.return_value = loc_data
         illustrator.asset_manager.get_location_ref.return_value = "loc_ref.jpg"
 
-        # Mock Global Style Template
-        mock_ref_f = MagicMock()
-        mock_ref_f.__str__.return_value = "/path/to/ref_f.jpg"
-        mock_ref_f.exists.return_value = True
-        illustrator.asset_manager.templates = {"ref_f": mock_ref_f}
-
         # Mock AI slug generation
         illustrator.ai_client.generate_filename_slug.return_value = "sunny_day"
         illustrator.ai_client.analyze_scene_for_highlight.return_value = {"image_prompt": "highlight prompt", "active_characters": ["Alice"]}
@@ -68,7 +62,7 @@ class TestStoryIllustrator:
         assert kwargs['output_path'] == expected_path
 
         assert "Park" in kwargs['prompt'] # Check prompt construction
-        assert len(kwargs['reference_images']) == 3
+        assert len(kwargs['reference_images']) == 2
         
         # Check Character Ref
         assert kwargs['reference_images'][0]['path'] == "f.jpg"
@@ -77,10 +71,6 @@ class TestStoryIllustrator:
         # Check Location Ref
         assert kwargs['reference_images'][1]['path'] == "loc_ref.jpg"
         assert kwargs['reference_images'][1]['purpose'] == "Environment Reference for Park"
-
-        # Check Global Style Ref
-        assert kwargs['reference_images'][2]['path'] == "/path/to/ref_f.jpg"
-        assert kwargs['reference_images'][2]['purpose'] == "Global Art Style Reference"
 
     def test_select_character_ref_portrait(self, illustrator):
         scene = Scene(

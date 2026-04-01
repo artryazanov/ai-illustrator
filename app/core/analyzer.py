@@ -100,7 +100,7 @@ class StoryAnalyzer:
                 if isinstance(response_data, list):
                     # Natively parsed by SDK via response.parsed
                     data_list = [item.model_dump() if hasattr(item, 'model_dump') else item for item in response_data]
-                else:
+                elif response_data:
                     clean_text = response_data.replace("```json", "").replace("```", "").strip()
                     data_list = json.loads(clean_text)
                 
@@ -159,6 +159,9 @@ class StoryAnalyzer:
             if isinstance(response_data, list):
                 return [ch if isinstance(ch, Character) else Character(**(ch.model_dump() if hasattr(ch, 'model_dump') else ch)) for ch in response_data]
             
+            if not response_data:
+                 return []
+            
             clean_text = response_data.replace("```json", "").replace("```", "").strip()
             data = json.loads(clean_text)
             return [Character(**d) for d in data]
@@ -184,6 +187,9 @@ class StoryAnalyzer:
             if isinstance(response_data, list):
                 return [loc if isinstance(loc, Location) else Location(**(loc.model_dump() if hasattr(loc, 'model_dump') else loc)) for loc in response_data]
             
+            if not response_data:
+                 return []
+                 
             clean_text = response_data.replace("```json", "").replace("```", "").strip()
             data = json.loads(clean_text)
             return [Location(**d) for d in data]

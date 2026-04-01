@@ -162,15 +162,6 @@ class StoryIllustrator:
                 "usage": "Use this as the absolute source of truth for the background, architecture, and environmental lighting."
             })
 
-        # 3. Attach global style
-        style_ref = self.asset_manager.templates.get("ref_f")
-        if style_ref and style_ref.exists():
-            reference_images.append({
-                "path": str(style_ref),
-                "purpose": "Global Art Style Reference",
-                "usage": "This image dictates the rendering style, brushwork, medium, and overall aesthetic."
-            })
-
         # Form final text blocks
         anchors_text = "\n".join(anchors_text_blocks)
         visual_core = highlight_prompt if highlight_prompt else scene.visual_description
@@ -204,7 +195,12 @@ class StoryIllustrator:
             
             current_prompt = base_prompt + f"\n{Config.DIGITAL_FIX}"
             if feedback:
-                current_prompt += f"\n\n[CRITICAL CORRECTION REQUIRED]\nThe previous attempt failed QA: '{feedback}'. You MUST fix this error in this generation."
+                safe_feedback = self.ai_client.sanitize_prompt_feedback(feedback)
+                current_prompt += (
+                    f"\n\n[CRITICAL CORRECTION REQUIRED]\n{safe_feedback}. "
+                    f"IMPORTANT: While applying the correction, you MUST strictly maintain the exact character identity, "
+                    f"clothing, and face from the provided reference images. Do not invent a new character or change the style!"
+                )
 
             try:
                 self.ai_client.generate_image(

@@ -70,6 +70,24 @@ class GenAIClient:
             logger.warning(f"Slug generation failed: {e}. Using fallback.")
             return "scene"
 
+    def sanitize_prompt_feedback(self, feedback: str) -> str:
+        """Translates QA validator feedback into a safe, positive image generation prompt."""
+        try:
+            prompt = (
+                f"You are a Prompt Engineer. Your task is to extract the core issue from QA feedback about a failed image "
+                f"and rewrite it as a safe, purely visual instruction for an image generation model.\n"
+                f"The image generator will reject prompts if they contain words like 'watermark', 'signature', 'copyright', 'text', 'error', 'fail', or conversational phrasing.\n\n"
+                f"Original QA Feedback: '{feedback}'\n\n"
+                f"Rewrite it as a simple, positive visual instruction describing how the image SHOULD look. Do not use negative commands involving banned words. "
+                f"For example, instead of 'Remove the watermark', write 'Ensure the image is completely clean and unmarked.'\n"
+                f"Return ONLY the rewritten visual instruction, nothing else."
+            )
+            return self.generate_text(prompt).strip()
+        except Exception as e:
+            logger.warning(f"Feedback sanitization failed: {e}. Using original.")
+            return feedback
+
+
     def analyze_scene_for_highlight(self, scene_text: str, available_characters: List[str] = None) -> Dict[str, Any]:
         """
         Analyzes the scene text to identify the most visually striking and significant moment

@@ -100,6 +100,16 @@ class TestGenAIClient:
             slug = ai_client.generate_filename_slug("desc")
             assert slug == "scene"
 
+    def test_sanitize_prompt_feedback(self, ai_client):
+        with patch.object(ai_client, 'generate_text', return_value="safe feedback text"):
+            safe = ai_client.sanitize_prompt_feedback("remove watermark and text")
+            assert safe == "safe feedback text"
+            
+    def test_sanitize_prompt_feedback_exception(self, ai_client):
+        with patch.object(ai_client, 'generate_text', side_effect=Exception("API limit")):
+            safe = ai_client.sanitize_prompt_feedback("remove watermark and text")
+            assert safe == "remove watermark and text"
+
     def test_analyze_scene_for_highlight(self, ai_client):
         mock_json = '{"highlight_description": "H", "image_prompt": "P", "active_characters": ["A"]}'
         with patch.object(ai_client, 'generate_text', return_value=mock_json):

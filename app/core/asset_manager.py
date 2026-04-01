@@ -63,7 +63,8 @@ class AssetManager:
                 logger.info(f"Generating global character style template (Attempt {attempt}/{Config.MAX_RETRIES})...")
                 current_prompt = f"{style_ref_prompt}. Full body shot, standing."
                 if feedback:
-                    current_prompt += f"\n\n[CRITICAL CORRECTION REQUIRED]\nThe previous attempt failed QA: '{feedback}'. You MUST fix this error."
+                    safe_feedback = self.ai_client.sanitize_prompt_feedback(feedback)
+                    current_prompt += f"\n\n[CRITICAL CORRECTION REQUIRED]\n{safe_feedback}. You MUST fix this format."
                 
                 try:
                     self.ai_client.generate_image(
@@ -107,6 +108,7 @@ class AssetManager:
             validation_rules = """
             1. No Text Rule: The image MUST contain NO text, NO watermarks, NO speech bubbles, and NO UI elements.
             2. Empty Environment Rule: The image MUST NOT contain any characters, humans, or animals.
+            3. No Frame Rule: The image MUST be a full-bleed picture extending edge-to-edge. It MUST NOT have any borders, frames, white margins, passe-partout, or split screens. If there is any visible frame or border around the image, it MUST fail.
             """
             attempt = 1
             feedback = None
@@ -114,7 +116,8 @@ class AssetManager:
                 logger.info(f"Generating location style template (Attempt {attempt}/{Config.MAX_RETRIES})...")
                 current_prompt = bg_prompt
                 if feedback:
-                    current_prompt += f"\n\n[CRITICAL CORRECTION REQUIRED]\nThe previous attempt failed QA: '{feedback}'. You MUST fix this error."
+                    safe_feedback = self.ai_client.sanitize_prompt_feedback(feedback)
+                    current_prompt += f"\n\n[CRITICAL CORRECTION REQUIRED]\n{safe_feedback}. You MUST fix this format."
                 
                 try:
                     self.ai_client.generate_image(
@@ -340,9 +343,10 @@ class AssetManager:
         digital_fix = Config.DIGITAL_FIX
         view_type = "full body shot"
         
-        validation_rules = """
+        validation_rules = f"""
         1. Character Rule: There must be EXACTLY ONE character. No twins, no multiple angles of the same person.
         2. Background Rule: Clean background, no text, no captions.
+        3. Anatomy Rule: Verify the character's anatomy exactly matches this description: "{char.description}". 
         """
 
         # IMPLEMENTED: Strict requirement for pure white background for concept isolation
@@ -362,7 +366,11 @@ class AssetManager:
             
             current_prompt = base_prompt + f"\n{digital_fix}"
             if feedback:
-                current_prompt += f"\n\n[CRITICAL CORRECTION REQUIRED]\nThe previous attempt failed QA: '{feedback}'. You MUST fix this error."
+                safe_feedback = self.ai_client.sanitize_prompt_feedback(feedback)
+                current_prompt += (
+                    f"\n\n[CRITICAL CORRECTION REQUIRED]\n{safe_feedback}. "
+                    f"DO NOT change the art style from the reference image."
+                )
 
             try:
                 self.ai_client.generate_image(
@@ -442,7 +450,7 @@ class AssetManager:
             
             # Base Prompt
             digital_fix = Config.DIGITAL_FIX
-            prompt = (
+            base_prompt = (
                 f"Digital landscape art of {loc.name}, {loc.description}. "
                 f"The visual style, lighting, and brushwork MUST be an exact match to the provided Environment Style Template. "
                 f"{style_prompt}. {Config.IMAGE_ASPECT_RATIO} aspect ratio, cinematic wide shot. "
@@ -451,27 +459,73 @@ class AssetManager:
                 f"High quality environment design. {digital_fix}"
             )
 
-            try:
-                self.ai_client.generate_image(
-                    prompt=prompt,
-                    reference_images=[{
-                        "path": str(self.loc_templates["bg_landscape"]),
-                        "purpose": "Environment Style Template",
-                        "usage": "This image is the absolute source of truth for visual style, color palette, and artistic technique. The new image MUST be an identical stylistic match to this reference."
-                    }],
-                    output_path=str(img_file),
-                    aspect_ratio=Config.IMAGE_ASPECT_RATIO
-                )
-                loc.reference_image_path = str(img_file)
-                loc.generation_prompt = prompt
+            validation_rules = """
+            1. No Text Rule: The image MUST contain NO text, NO watermarks, NO speech bubbles, and NO UI elements.
+            2. Empty Environment Rule: The image MUST NOT contain any characters, humans, or animals.
+            3. No Frame Rule: The image MUST be a full-bleed picture extending edge-to-edge. It MUST NOT have any borders, frames, white margins, passe-partout, or split screens. If there is any visible frame or border around the image, it MUST fail.
+            """
+
+            attempt = 1
+            feedback = None
+
+            while attempt <= Config.MAX_RETRIES:
+                logger.info(f"Generating location {loc.name} (Attempt {attempt}/{Config.MAX_RETRIES})...")
+                
+                current_prompt = base_prompt
+                if feedback:
+                    safe_feedback = self.ai_client.sanitize_prompt_feedback(feedback)
+                    current_prompt += (
+                        f"\n\n[CRITICAL CORRECTION REQUIRED]\n{safe_feedback}. "
+                        f"DO NOT change the art style from the reference image."
+                    )
+
+                try:
+                    self.ai_client.generate_image(
+                        prompt=current_prompt,
+                        reference_images=[{
+                            "path": str(self.loc_templates["bg_landscape"]),
+                            "purpose": "Environment Style Template",
+                            "usage": "This image is the absolute source of truth for visual style, color palette, and artistic technique. The new image MUST be an identical stylistic match to this reference."
+                        }],
+                        output_path=str(img_file),
+                        aspect_ratio=Config.IMAGE_ASPECT_RATIO
+                    )
+                    
+                    qa_result = self.ai_client.validate_image(
+                        generated_image_path=str(img_file),
+                        validation_rules=validation_rules,
+                        reference_images=[]
+                    )
+                    
+                    if qa_result.is_valid:
+                        logger.info(f"✅ Location {loc.name} passed QA validation!")
+                        loc.reference_image_path = str(img_file)
+                        loc.generation_prompt = current_prompt
+                        if not loc.original_name:
+                            loc.original_name = loc.name
+                        
+                        self.locations[loc.name] = loc
+                        self._save_data()
+                        break
+                    else:
+                        logger.warning(f"❌ Location {loc.name} validation failed: {qa_result.feedback}")
+                        feedback = qa_result.feedback
+                        attempt += 1
+                        
+                except Exception as e:
+                    logger.error(f"Error generating location {loc.name}: {e}")
+                    attempt += 1
+
+            if attempt > Config.MAX_RETRIES:
+                logger.warning(f"⚠️ Max retries reached for Location {loc.name}. Proceeding with the last generated image.")
+                if img_file.exists():
+                    loc.reference_image_path = str(img_file)
+                    loc.generation_prompt = current_prompt
                 if not loc.original_name:
                     loc.original_name = loc.name
                 
                 self.locations[loc.name] = loc
                 self._save_data()
-                
-            except Exception as e:
-                logger.error(f"Failed to generate location {loc.name}: {e}")
 
     def _check_existing_character_semantic(self, new_char: Character) -> Optional[Character]:
         """Uses AI to check if the new character matches any existing character description."""
