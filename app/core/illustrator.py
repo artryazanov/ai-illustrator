@@ -78,9 +78,10 @@ class StoryIllustrator:
             available_characters=scene.characters_present
         )
         highlight_prompt = highlight_data.get("image_prompt")
+        highlight_desc = highlight_data.get("highlight_description")
         active_characters = highlight_data.get("active_characters")
 
-        prompt = self._generate_scene_image(scene, style_prompt, img_file, highlight_prompt, active_characters)
+        prompt = self._generate_scene_image(scene, style_prompt, img_file, highlight_prompt, highlight_desc, active_characters)
         if prompt:
             scene_metadata["generation_prompt"] = prompt
 
@@ -126,7 +127,7 @@ class StoryIllustrator:
             json.dump(data, f, ensure_ascii=False, indent=4)
         logger.info(f"Global manifest saved to {manifest_path}")
 
-    def _generate_scene_image(self, scene: Scene, style_prompt: str, output_path: Path, highlight_prompt: Optional[str] = None, active_characters: Optional[List[str]] = None) -> Optional[str]:
+    def _generate_scene_image(self, scene: Scene, style_prompt: str, output_path: Path, highlight_prompt: Optional[str] = None, highlight_desc: Optional[str] = None, active_characters: Optional[List[str]] = None) -> Optional[str]:
         reference_images = []
         anchors_text_blocks = []
         
@@ -165,6 +166,7 @@ class StoryIllustrator:
         # Form final text blocks
         anchors_text = "\n".join(anchors_text_blocks)
         visual_core = highlight_prompt if highlight_prompt else scene.visual_description
+        action_core = highlight_desc if highlight_desc else scene.action_description
 
         validation_rules = """
         1. Single Frame Rule: The image MUST be a single cinematic shot. NO split screens, NO comic book panels, NO grid layouts, NO borders.
@@ -183,7 +185,7 @@ class StoryIllustrator:
             f"{anchors_text}\n"
             f"--------------------------------\n\n"
             f"Scene context: {visual_core}\n"
-            f"Action taking place: {scene.action_description}\n"
+            f"Action taking place: {action_core}\n"
             f"Setting: {scene.location_name}, {scene.time_of_day}. Mood: {scene.mood}."
         )
 
@@ -202,7 +204,8 @@ class StoryIllustrator:
                 
                 current_prompt += (
                     "\nIMPORTANT: While applying these corrections, you MUST strictly maintain the exact character identity, "
-                    "clothing, and face from the provided reference images. Do not invent a new character or change the style!"
+                    "clothing, and face from the provided character references, AS WELL AS the background/environment from the location reference. "
+                    "Do not invent new characters, new locations, or change the style!"
                 )
 
             try:
