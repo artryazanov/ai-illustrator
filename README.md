@@ -8,6 +8,37 @@
 
 AI Illustrator is a powerful tool designed to automatically generate consistent, high-quality illustrations for stories using Google's Gemini models for both text analysis and image generation. It processes a story text file, analyzes it to understand the visual style, characters, and locations, and then generates a sequence of cinematic illustrations.
 
+## 🖼️ Showcase
+
+**The Tale of Kolobok**: For this demonstration, we processed the classic fairy tale "Kolobok" (The Little Round Bun). The story follows a freshly baked bun that comes to life, escapes from an old man and woman, and rolls away into the forest. Along its journey, it sings a song and outsmarts a hare, a wolf, and a bear, before finally being outwitted by a cunning fox.
+
+> **Example generated using the following command:**  
+> `docker-compose run app --text-file data/story.txt --output-dir output/kolobok_048 --style-prompt "cute and whimsical children's book illustration for toddlers"`
+
+### Generated Character Reference Cards
+
+<p align="center">
+  <img src="assets/kolobok/characters/2_old_woman.jpeg" width="16%" alt="Old Woman" title="Old Woman" />
+  <img src="assets/kolobok/characters/3_little_round_bun.jpeg" width="16%" alt="Little Round Bun" title="Little Round Bun" />
+  <img src="assets/kolobok/characters/4_hare.jpeg" width="16%" alt="Hare" title="Hare" />
+  <img src="assets/kolobok/characters/5_the_wolf.jpeg" width="16%" alt="The Wolf" title="The Wolf" />
+  <img src="assets/kolobok/characters/6_bear.jpeg" width="16%" alt="Bear" title="Bear" />
+  <img src="assets/kolobok/characters/7_the_fox.jpeg" width="16%" alt="The Fox" title="The Fox" />
+</p>
+
+### Generated Scene Illustrations
+
+<p align="center">
+  <img src="assets/kolobok/illustrations/1_old_woman_baking_kolobok.jpeg" width="32%" alt="Old Woman Baking" title="Scene 1" />
+  <img src="assets/kolobok/illustrations/2_rolling_loaf_escapes.jpeg" width="32%" alt="Rolling Loaf Escapes" title="Scene 2" />
+  <img src="assets/kolobok/illustrations/3_kolobok_meets_hare.jpeg" width="32%" alt="Kolobok Meets Hare" title="Scene 3" />
+</p>
+<p align="center">
+  <img src="assets/kolobok/illustrations/4_kolobok_rolls_past_wolf.jpeg" width="32%" alt="Kolobok Rolls Past Wolf" title="Scene 4" />
+  <img src="assets/kolobok/illustrations/5_kolobok_escapes_bear.jpeg" width="32%" alt="Kolobok Escapes Bear" title="Scene 5" />
+  <img src="assets/kolobok/illustrations/6_fox_eats_kolobok.jpeg" width="32%" alt="Fox Eats Kolobok" title="Scene 6" />
+</p>
+
 ## ✨ Features
 
 -   **Automatic Style Detection**: Analyzes the story text to determine the most appropriate art style and generates consistent illustrations based on that style.
