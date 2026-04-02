@@ -83,7 +83,7 @@ AI Illustrator is a powerful tool designed to automatically generate consistent,
 
 ### 1. Clone the Repository
 ```bash
-git clone <repository-url>
+git clone git@github.com:artryazanov/ai-illustrator.git
 cd ai-illustrator
 ```
 
