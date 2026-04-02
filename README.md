@@ -12,8 +12,11 @@ AI Illustrator is a powerful tool designed to automatically generate consistent,
 
 **The Tale of Kolobok**: For this demonstration, we processed the classic fairy tale "Kolobok" (The Little Round Bun). The story follows a freshly baked bun that comes to life, escapes from an old man and woman, and rolls away into the forest. Along its journey, it sings a song and outsmarts a hare, a wolf, and a bear, before finally being outwitted by a cunning fox.
 
-> **Example generated using the following command:**  
-> `docker-compose run app --text-file data/story.txt --output-dir output/kolobok_048 --style-prompt "cute and whimsical children's book illustration for toddlers"`
+> **Generation Parameters:**  
+> - **Story Input**: The Kolobok text  
+> - **Style Prompt**: *"cute and whimsical children's book illustration for toddlers"*  
+> - **Models**: Text / Validator (`gemini-3.1-pro-preview`), Image (`gemini-3.1-flash-image-preview`)
+> - **Resolution Context**: 512px, `1:1` Aspect Ratio
 
 ### Generated Character Reference Cards
 
