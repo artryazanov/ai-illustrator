@@ -98,6 +98,7 @@ Open `.env` and set your variables:
 ```ini
 GEMINI_API_KEY=your_api_key_here
 TEXT_MODEL_NAME=gemini-3.1-pro-preview # or compatible
+VALIDATOR_MODEL_NAME=gemini-3.1-pro-preview # or compatible
 IMAGE_MODEL_NAME=gemini-3.1-flash-image-preview # or specific imagen model
 IMAGE_RESOLUTION=1K # Options: 512, 1K, 2K, 4K
 IMAGE_ASPECT_RATIO=1:1 # Options: 1:1, 1:4, 1:8, 2:3, 3:2, 3:4, 4:1, 4:3, 4:5, 5:4, 8:1, 9:16, 16:9, 21:9
