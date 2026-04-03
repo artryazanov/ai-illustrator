@@ -8,19 +8,19 @@
 ![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.14-blue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-AI Illustrator es una potente herramienta diseñada para generar automáticamente ilustraciones consistentes y de alta calidad para historias, utilizando los modelos Gemini de Google tanto para el análisis de texto como para la generación de imágenes. Procesa un archivo de texto de una historia, lo analiza para comprender el estilo visual, los personajes y las ubicaciones, y luego genera una secuencia de ilustraciones cinematográficas.
+AI Illustrator es una potente herramienta diseñada para generar automáticamente ilustraciones coherentes y de alta calidad para historias utilizando los modelos Gemini de Google tanto para el análisis de texto como para la generación de imágenes. Procesa un archivo de texto de historia, lo analiza para comprender el estilo visual, los personajes y las ubicaciones, y luego genera una secuencia de ilustraciones cinematográficas.
 
 ## 🖼️ Demostración
 
-**El Cuento de Kolobok**: Para esta demostración, procesamos el clásico cuento de hadas "Kolobok" (El Pequeño Panecillo Redondo). La historia sigue a un panecillo recién horneado que cobra vida, escapa de un anciano y una anciana, y rueda hacia el bosque. A lo largo de su viaje, canta una canción y burla a una liebre, un lobo y un oso, antes de ser finalmente engañado por un astuto zorro.
+**El cuento de Kolobok**: Para esta demostración, procesamos el clásico cuento de hadas "Kolobok" (El pequeño panecillo redondo). La historia sigue a un panecillo recién horneado que cobra vida, escapa de un anciano y una anciana, y rueda hacia el bosque. A lo largo de su viaje, canta una canción y burla a una liebre, un lobo y un oso, antes de ser finalmente engañado por un astuto zorro.
 
-> **Parámetros de Generación:**  
-> - **Entrada de Historia**: El texto de Kolobok  
-> - **Prompt de Estilo**: *"ilustración linda y caprichosa de libro infantil para niños pequeños"*  
+> **Parámetros de generación:**  
+> - **Entrada de historia**: El texto de Kolobok  
+> - **Prompt de estilo**: *"cute and whimsical children's book illustration for toddlers"*  
 > - **Modelos**: Texto / Validador (`gemini-3.1-pro-preview`), Imagen (`gemini-3.1-flash-image-preview`)
-> - **Contexto de Resolución**: 512px, Relación de Aspecto `1:1`
+> - **Contexto de resolución**: 512px, Relación de aspecto `1:1`
 
-### Tarjetas de Referencia de Personajes Generadas
+### Tarjetas de referencia de personajes generadas
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/artryazanov/ai-illustrator/main/assets/kolobok/characters/2_old_woman.jpeg" width="16%" alt="Old Woman" title="Old Woman" />
@@ -31,7 +31,7 @@ AI Illustrator es una potente herramienta diseñada para generar automáticament
   <img src="https://raw.githubusercontent.com/artryazanov/ai-illustrator/main/assets/kolobok/characters/7_the_fox.jpeg" width="16%" alt="The Fox" title="The Fox" />
 </p>
 
-### Ilustraciones de Escenas Generadas
+### Ilustraciones de escenas generadas
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/artryazanov/ai-illustrator/main/assets/kolobok/illustrations/1_old_woman_baking_kolobok.jpeg" width="32%" alt="Old Woman Baking" title="Scene 1" />
@@ -46,105 +46,106 @@ AI Illustrator es una potente herramienta diseñada para generar automáticament
 
 ## ✨ Características
 
--   **Detección Automática de Estilo**: Analiza el texto de la historia para determinar el estilo artístico más apropiado y genera ilustraciones consistentes basadas en dicho estilo.
--   **Consistencia de Personajes**:
-    -   Extrae descripciones de personajes y genera imágenes de referencia de los mismos (Cuerpo Entero).
-    -   Mantiene un catálogo persistente de personajes en `output/data.json` para asegurar que el mismo personaje se vea de manera consistente a lo largo de toda la historia.
-    -   Utiliza el patrón de **Referencias Limpias**: las tarjetas de referencia de personajes se generan estrictamente sobre fondos BLANCO PURO aislados para evitar la mezcla de elementos del entorno durante la integración de escenas.
+-   **Detección automática de estilo**: Analiza el texto de la historia para determinar el estilo artístico más apropiado y genera ilustraciones consistentes basadas en ese estilo.
+-   **Consistencia de personajes**:
+    -   Extrae descripciones de personajes y genera imágenes de referencia de personajes (Cuerpo entero).
+    -   Mantiene un catálogo persistente de personajes en `output/data.json` para asegurar que el mismo personaje mantenga un aspecto consistente a lo largo de la historia.
+    -   Utiliza el patrón de **Referencias limpias**: Las tarjetas de referencia de personajes se generan estrictamente sobre fondos BLANCOS PUROS aislados para evitar la contaminación del entorno durante la integración de escenas.
     -   Utiliza imágenes de referencia (generación multimodal) para mantener estable la apariencia del personaje en diferentes escenas.
--   **Consistencia de Ubicaciones**:
+-   **Consistencia de ubicaciones**:
     -   Genera y almacena en caché imágenes de referencia de ubicaciones (Tomas de estilo cinematográfico).
-    -   Mantiene un catálogo de ubicaciones en `output/data.json` para reutilizar los escenarios.
-    -   **Optimización de Cuota**: El emparejamiento inteligente de ubicaciones asegura que la API solo genere recursos de entorno para aquellas ubicaciones que estén estrictamente activas en las escenas de la historia, omitiendo descripciones de fondos no utilizados.
--   **Generación de Escenas Cinematográficas**:
-    -   Divide la historia en escenas lógicas de forma segura utilizando Fragmentación Semántica (conservando el contexto entre fragmentos).
+    -   Mantiene un catálogo de ubicaciones en `output/data.json` para reutilizar escenarios.
+    -   **Optimización de cuota**: La coincidencia inteligente de ubicaciones asegura que la API solo genere recursos de entorno para ubicaciones estrictamente activas en las escenas de la historia, omitiendo descripciones de fondos no utilizados.
+-   **Generación de escenas cinematográficas**:
+    -   Divide la historia en escenas lógicas de forma segura utilizando fragmentación semántica (preservando el contexto entre fragmentos).
     -   Paraleliza el renderizado de escenas a través de ThreadPool para una generación más rápida.
     -   Genera un único fotograma cinematográfico cohesivo para cada escena (Relación de aspecto configurable).
-    -   Utiliza el **Anclaje Textual** mapeando explícitamente referencias de múltiples personajes a través de bloques `MANDATORY VISUAL DETAILS` (DETALLES VISUALES OBLIGATORIOS) estrictamente estructurados para evitar que el modelo confunda vestimentas o rasgos entre personajes.
--   **Bucle de Control de Calidad (QA) con LLM como Juez y Autocorrección**:
-    -   Valida nativamente las imágenes generadas frente a conjuntos de reglas estructurales estrictas (ej. Un Solo Fotograma, restricciones anatómicas, Sin Texto, Sin Bordes).
-    -   Si una imagen falla (ej. múltiples ángulos, extremidades extra, o bordes de encuadre), un prompt estricto de validación desencadena instantáneamente un bloque de regeneración restringido.
-    -   **Editor de Estilo Inteligente**: Implementa QA mediante IA programática para validar las descripciones de estilo de texto, previniendo alertas de falsos positivos (como confundir la palabra prohibida "texto" dentro de la palabra permitida "textura").
-    -   **Preservación del Contexto**: La retroalimentación inyectada ancla fuertemente al modelo para retener la identidad original del personaje y el estilo artístico, corrigiendo exclusivamente el error estructural señalado.
-    -   **Evasión de Filtros de Seguridad**: Sanea automáticamente los fallos brutos de QA a través de un paso intermedio de LLM de tipo "Ingeniero de Prompts". Esto traduce la retroalimentación negativa (como "eliminar marca de agua/firma") en prompts positivos y visualmente claros que eluden de manera segura los filtros de bloqueo del generador de imágenes.
-    -   Aplica la validación de QA de manera uniforme en **Plantillas de Estilo**, **Personajes**, **Ubicaciones** y **Escenas** para mantener una narrativa cohesiva y libre de artefactos.
--   **Salidas Estructuradas Nativas**:
-    -   Reemplaza el frágil análisis de markdown-JSON con un soporte 100% fiable de `response_schema` de Google GenAI, mapeado directamente a modelos de Pydantic.
+    -   Utiliza **Anclaje textual** mapeando explícitamente referencias de múltiples personajes a través de bloques de `MANDATORY VISUAL DETAILS` estructurados estrictamente para evitar que el modelo confunda atuendos o rasgos entre personajes.
+-   **Ciclo de control de calidad "LLM-as-a-Judge" y autocorrección**:
+    -   Valida de forma nativa las imágenes generadas contra conjuntos de reglas estructurales estrictas (ej., fotograma único, restricciones anatómicas, sin texto, sin bordes).
+    -   Si una imagen falla (ej., múltiples ángulos, extremidades adicionales o bordes de encuadre), un prompt de validación estricto activa instantáneamente un bloque de regeneración restringido.
+    -   **Editor de estilo inteligente**: Implementa control de calidad programático con IA para validar las descripciones de estilo de texto, evitando falsos positivos (como confundir la palabra prohibida "texto" dentro de la palabra permitida "textura").
+    -   **Preservación del contexto**: Los comentarios inyectados anclan fuertemente el modelo para retener la identidad del personaje original y el estilo artístico mientras corrige exclusivamente el error estructural detectado.
+    -   **Omisión de filtros de seguridad**: Sanea automáticamente los fallos de control de calidad en bruto a través de un paso intermedio de un LLM "Ingeniero de Prompts". Esto traduce comentarios negativos (como "eliminar marca de agua/firma") en prompts positivos y visualmente claros que omiten de forma segura los filtros de bloqueo del generador de imágenes.
+    -   Aplica validación de control de calidad de manera uniforme en **Plantillas de estilo**, **Personajes**, **Ubicaciones** y **Escenas** para mantener una narrativa cohesiva y libre de artefactos.
+-   **Salidas estructuradas nativas**:
+    -   Reemplaza el frágil análisis de Markdown a JSON con soporte 100% confiable de `response_schema` de Google GenAI mapeado directamente a modelos Pydantic.
 -   **Resiliencia de la API**:
     -   Maneja completamente los límites de tasa de la API, tiempos de espera y fallos de carga útil utilizando mecanismos de reintento de retroceso exponencial (`tenacity`).
--   **Soporte de Docker**: Completamente en contenedores para facilitar su despliegue y ejecución.
--   **Pruebas Exhaustivas**: Alta cobertura de pruebas bajo integración continua con Github Actions y Codecov.
+-   **Soporte para Docker**: Totalmente contenedorizado para facilitar su implementación y ejecución.
+-   **Pruebas exhaustivas**: Alta cobertura de pruebas bajo integración continua con Github Actions y Codecov.
 
-## 🛠️ Requisitos Previos
+## 🛠️ Prerrequisitos
 
 -   **Python 3.12+** (si se ejecuta localmente)
 -   **Docker** y **Docker Compose** (recomendado para aislamiento)
 -   **Clave API de Google Cloud** con acceso a los modelos Gemini (incluyendo capacidades de generación de imágenes).
 
-## 🚀 Instalación y Configuración
+## 🚀 Instalación y configuración
 
-### 1. Clonar el Repositorio
+### 1. Clonar el repositorio
 ```bash
 git clone git@github.com:artryazanov/ai-illustrator.git
 cd ai-illustrator
 ```
 
-### 2. Configurar el Entorno
-Copie el archivo de entorno de ejemplo y añada su clave API.
+### 2. Configurar el entorno
+Copia el archivo de entorno de ejemplo y añade tu clave API.
 ```bash
 cp .env.example .env
 ```
-Abra `.env` y configure sus variables:
+Abre `.env` y configura tus variables:
 ```ini
 GEMINI_API_KEY=your_api_key_here
 TEXT_MODEL_NAME=gemini-3.1-pro-preview # or compatible
+VALIDATOR_MODEL_NAME=gemini-3.1-pro-preview # or compatible
 IMAGE_MODEL_NAME=gemini-3.1-flash-image-preview # or specific imagen model
 IMAGE_RESOLUTION=1K # Options: 512, 1K, 2K, 4K
 IMAGE_ASPECT_RATIO=1:1 # Options: 1:1, 1:4, 1:8, 2:3, 3:2, 3:4, 4:1, 4:3, 4:5, 5:4, 8:1, 9:16, 16:9, 21:9
 MAX_RETRIES=4 # Maximum generation attempts during QA loops
 ```
 
-### 3. Ejecutar con Docker (Recomendado)
+### 3. Ejecución con Docker (Recomendado)
 
-Construir la imagen de Docker:
+Construye la imagen de Docker:
 ```bash
 docker-compose build
 ```
 
-Ejecutar el generador:
-1.  Coloque su archivo de texto con la historia en el directorio `data/` (ej., `data/my_story.txt`).
-2.  Ejecute el contenedor:
+Ejecuta el generador:
+1.  Coloca tu archivo de texto de historia en el directorio `data/` (ej., `data/my_story.txt`).
+2.  Ejecuta el contenedor:
     ```bash
     docker-compose run app --text-file data/my_story.txt --output-dir output/my_project_name
     ```
-    *Nota: El directorio `output` se poblará con los resultados en su máquina host.*
+    *Nota: El directorio `output` se completará con los resultados en tu máquina host.*
 
-### 4. Ejecutar Localmente
+### 4. Ejecución local
 
-Crear un entorno virtual:
+Crea un entorno virtual:
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-Instalar las dependencias:
+Instala las dependencias:
 ```bash
 pip install -r requirements.txt
 ```
 
-Ejecutar la aplicación:
+Ejecuta la aplicación:
 ```bash
 python main.py --text-file data/my_story.txt --output-dir output/my_project_name
 ```
 
 ## 💡 Uso
 
-### Argumentos de Línea de Comandos
--   `--text-file`: **(Requerido)** Ruta al archivo de texto de entrada que contiene la historia.
--   `--output-dir`: Directorio para guardar los recursos e ilustraciones generadas (predeterminado: `output`).
--   `--style-prompt`: Prompt opcional para guiar la detección de estilo inicial (ej., "Cyberpunk anime", "Pintura al óleo").
+### Argumentos de línea de comandos
+-   `--text-file`: **(Obligatorio)** Ruta al archivo de texto de entrada que contiene la historia.
+-   `--output-dir`: Directorio para guardar los recursos e ilustraciones generadas (por defecto: `output`).
+-   `--style-prompt`: Prompt opcional para guiar la detección de estilo inicial (ej., "Anime cyberpunk", "Pintura al óleo").
 
-### Estructura de Salida
+### Estructura de salida
 La herramienta crea un directorio de salida organizado y plano:
 
 ```
@@ -210,9 +211,9 @@ El archivo `data.json` sirve como manifiesto central del proyecto.
 }
 ```
 
-## 🧪 Desarrollo y Pruebas
+## 🧪 Desarrollo y pruebas
 
-Este proyecto utiliza `pytest` para las pruebas. La suite de pruebas cubre modelos, configuración, gestión de recursos, semántica de división de texto del analizador, y el envoltorio del cliente de IA. Prueba rigurosamente las estrategias de respaldo (fallbacks), manejadores de IO de PIL simulados, límites de concurrencia de ThreadPool, mapeos dinámicos de esquemas y mecánicas de reintento con retroceso exponencial.
+Este proyecto utiliza `pytest` para las pruebas. El conjunto de pruebas cubre los modelos, la configuración, la gestión de recursos, la semántica de división de texto del analizador y el contenedor del cliente de IA. Prueba rigurosamente las estrategias de reserva (fallback), los manejadores de E/S de PIL simulados (mocked), los límites de concurrencia de ThreadPool, los mapeos dinámicos de esquemas y las mecánicas de reintento de retroceso exponencial.
 
 Para ejecutar las pruebas:
 ```bash
@@ -223,21 +224,21 @@ source venv/bin/activate
 pytest --cov=app --cov-report=term-missing tests/
 ```
 
-### Simulaciones (Mocking)
-Las pruebas utilizan `unittest.mock` y `pytest-mock` para simular las respuestas de la API de Google GenAI y las operaciones del sistema de archivos, garantizando que las pruebas sean rápidas y no consuman la cuota de la API.
+### Mocking (Simulación)
+Las pruebas utilizan `unittest.mock` y `pytest-mock` para simular las respuestas de la API de Google GenAI y las operaciones del sistema de archivos, asegurando que las pruebas sean rápidas y no consuman la cuota de la API.
 
-## 🏗️ Estructura del Proyecto
+## 🏗️ Estructura del proyecto
 -   `main.py`: Punto de entrada y lógica de orquestación.
 -   `app/`: Paquete principal.
     -   `config.py`: Configuración y gestión del entorno.
     -   `core/`: Módulos de lógica clave.
-        -   `ai_client.py`: Envoltorio para el SDK de Google GenAI.
-        -   `analyzer.py`: Análisis de la historia (Extracción de Escenas/Personajes/Ubicaciones).
+        -   `ai_client.py`: Contenedor para el SDK de Google GenAI.
+        -   `analyzer.py`: Análisis de la historia (Extracción de escenas/personajes/ubicaciones).
         -   `asset_manager.py`: Gestiona la creación y catalogación de recursos de referencia.
-        -   `illustrator.py`: Genera las ilustraciones finales de las escenas.
+        -   `illustrator.py`: Genera las ilustraciones de las escenas finales.
         -   `models.py`: Modelos de datos de Pydantic.
--   `tests/`: Suite de pruebas.
+-   `tests/`: Conjunto de pruebas.
 
 ## 📜 Licencia
 
-Este proyecto está licenciado bajo la Licencia MIT - consulte el archivo [LICENSE](LICENSE) para más detalles.
+Este proyecto está licenciado bajo la Licencia MIT - consulta el archivo [LICENSE](LICENSE) para más detalles.
